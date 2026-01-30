@@ -44,7 +44,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class ScanRequest(BaseModel):
     """Request model for thoughts scan"""
     keywords: List[str]
-    max_tweets: Optional[int] = 5
+    max_tweets: Optional[int] = 3  # Reduced from 5 to avoid timeout
     options: Optional[Dict[str, Any]] = None
 
 
@@ -910,7 +910,7 @@ def filter_tweets_by_timeframe(tweets: List[Dict[str, Any]], days: int = 3) -> L
     return filtered
 
 
-async def stage1_scan(keywords: List[str], max_tweets: int = 5, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Stage 1: Broad Scan - Query X API and Rank Top 5 Most Popular Tweets
     
@@ -1177,8 +1177,8 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
             
             deep_dive_analyses.append(analysis)
             
-            # Small delay to avoid rate limiting
-            await asyncio.sleep(0.5)
+            # Small delay to avoid rate limiting (reduced from 0.5s to 0.3s for faster processing)
+            await asyncio.sleep(0.3)
         except Exception as e:
             # If analysis fails, add error entry
             deep_dive_analyses.append({
@@ -1284,7 +1284,7 @@ async def run_thoughts_scan(request: ScanRequest):
       - Queries X API for keyword matches (expands keywords to all variations)
       - Filters tweets to past 3 days
       - Ranks tweets by popularity (weighted engagement: views, likes, retweets)
-      - Returns top 5 most popular tweets as Broad Scan Report
+      - Returns top 3 most popular tweets as Broad Scan Report
     
     - **Stage 2: Deep Dive Analysis**
       - Iterates through each tweet found in Stage 1
@@ -1295,14 +1295,19 @@ async def run_thoughts_scan(request: ScanRequest):
       - Returns Deep Dive Report with sentiment ratings for each tweet
     
     Returns a single JSON object containing both Broad Scan Report and Deep Dive Report.
+    
+    **Note**: Processing time is typically 15-30 seconds. If timeout occurs, reduce max_tweets.
     """
     scan_start_time = datetime.now()
     scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
     
+    # Limit max_tweets to prevent timeout (gateway timeout is usually 30-60s)
+    max_tweets = min(request.max_tweets or 3, 5)  # Cap at 5 to prevent timeout
+    
     try:
         # Stage 1: Tweet Discovery
         stage1_start = datetime.now()
-        stage1_data = await stage1_scan(request.keywords, request.max_tweets, request.options)
+        stage1_data = await stage1_scan(request.keywords, max_tweets, request.options)
         stage1_duration = stage1_data["duration_ms"]
         
         stage1_result = ScanStageResult(
