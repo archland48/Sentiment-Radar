@@ -1145,13 +1145,14 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     deep_dive_start = datetime.now()
     deep_dive_analyses = []
     
-    # Iterate through each tweet found in Stage 1
-    for tweet in analyzed_tweets:
+    # Prepare tasks for parallel LLM calls (optimization: process all tweets concurrently)
+    async def analyze_single_tweet(tweet: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze a single tweet and return analysis result"""
         tweet_text = tweet.get("text", "")
         tweet_id = tweet.get("id", "")
         
         if not tweet_text:
-            continue
+            return None
         
         try:
             # Perform deep dive analysis on tweet text
@@ -1175,20 +1176,38 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
             # Store external URLs found in tweet text (e.g., bloomberg.com, reuters.com) - these are links IN the tweet, not the tweet itself
             analysis["tweet_urls"] = extract_urls_from_text(tweet_text)
             
-            deep_dive_analyses.append(analysis)
-            
-            # Small delay to avoid rate limiting (reduced from 0.5s to 0.3s for faster processing)
-            await asyncio.sleep(0.3)
+            return analysis
         except Exception as e:
-            # If analysis fails, add error entry
-            deep_dive_analyses.append({
+            # If analysis fails, return error entry
+            return {
                 "tweet_id": tweet_id,
                 "tweet_text": tweet_text[:200] if tweet_text else "",
                 "sentiment": "Neutral",
                 "summary": f"Error analyzing tweet: {str(e)}",
                 "reasoning": "Unable to analyze tweet content",
                 "error": str(e)
-            })
+            }
+    
+    # Execute all LLM calls in parallel (much faster than sequential)
+    if analyzed_tweets:
+        print(f"🚀 Processing {len(analyzed_tweets)} tweets in parallel for Deep Dive Analysis...")
+        analysis_tasks = [analyze_single_tweet(tweet) for tweet in analyzed_tweets]
+        results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
+        
+        # Process results and filter out None values
+        for result in results:
+            if isinstance(result, Exception):
+                # Handle exceptions from gather
+                deep_dive_analyses.append({
+                    "sentiment": "Neutral",
+                    "summary": f"Error during parallel analysis: {str(result)}",
+                    "reasoning": "Parallel processing error",
+                    "error": str(result)
+                })
+            elif result is not None:
+                deep_dive_analyses.append(result)
+    else:
+        print("⚠️ No tweets to analyze in Deep Dive")
     
     deep_dive_duration = (datetime.now() - deep_dive_start).total_seconds() * 1000
     
