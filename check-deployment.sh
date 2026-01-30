@@ -13,7 +13,8 @@ echo ""
 # Check if we have the API token
 if [ -z "$AI_BUILDER_TOKEN" ]; then
     if [ -f .env ]; then
-        export $(grep -v '^#' .env | xargs)
+        # Load only lines that don't start with # and contain =
+        export $(grep -v '^#' .env | grep '=' | xargs)
     else
         echo "❌ AI_BUILDER_TOKEN not found. Please set it in .env file"
         exit 1
