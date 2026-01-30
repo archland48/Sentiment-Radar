@@ -954,7 +954,11 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optiona
         
         # Query X API for tweets matching keywords/variations
         # Get more tweets than needed so we can rank and filter
+        search_start = datetime.now()
+        print(f"🔍 [STAGE1] Querying X API for {len(keyword_expansions)} keyword(s)...")
         all_tweets, searched_variations = await search_tweets(keyword_expansions, max_tweets=1000)
+        search_duration = (datetime.now() - search_start).total_seconds() * 1000
+        print(f"📊 [STAGE1] Found {len(all_tweets)} tweets in {search_duration:.2f}ms")
         if not skip_expansion:
             all_variations_searched = searched_variations
         
@@ -1206,9 +1210,12 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     
     # Execute all LLM calls in parallel (much faster than sequential)
     if analyzed_tweets:
-        print(f"🚀 Processing {len(analyzed_tweets)} tweets in parallel for Deep Dive Analysis...")
+        llm_start = datetime.now()
+        print(f"🚀 [STAGE2] Processing {len(analyzed_tweets)} tweets in parallel for Deep Dive Analysis...")
         analysis_tasks = [analyze_single_tweet(tweet) for tweet in analyzed_tweets]
         results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
+        llm_duration = (datetime.now() - llm_start).total_seconds() * 1000
+        print(f"✅ [STAGE2] Completed {len(analyzed_tweets)} LLM calls in {llm_duration:.2f}ms (avg: {llm_duration/len(analyzed_tweets):.2f}ms per tweet)")
         
         # Process results and filter out None values
         for result in results:
@@ -1353,11 +1360,16 @@ async def run_thoughts_scan(request: ScanRequest):
     # Limit max_tweets to prevent timeout (gateway timeout is usually 30-60s)
     max_tweets = min(request.max_tweets or 2, 3)  # Cap at 3, default 2 to prevent timeout
     
+    # Log scan start
+    print(f"🚀 [SCAN {scan_id}] Starting scan with keywords: {request.keywords}, max_tweets: {max_tweets}")
+    
     try:
         # Stage 1: Tweet Discovery
         stage1_start = datetime.now()
+        print(f"⏱️  [SCAN {scan_id}] Stage 1 started at {stage1_start.isoformat()}")
         stage1_data = await stage1_scan(request.keywords, max_tweets, request.options)
         stage1_duration = stage1_data["duration_ms"]
+        print(f"✅ [SCAN {scan_id}] Stage 1 completed in {stage1_duration:.2f}ms")
         
         stage1_result = ScanStageResult(
             stage=1,
@@ -1369,8 +1381,10 @@ async def run_thoughts_scan(request: ScanRequest):
         
         # Stage 2: Thoughts Analysis (uses stage 1 results)
         stage2_start = datetime.now()
+        print(f"⏱️  [SCAN {scan_id}] Stage 2 started at {stage2_start.isoformat()}")
         stage2_data = await stage2_scan(stage1_data, request.options)
         stage2_duration = stage2_data["duration_ms"]
+        print(f"✅ [SCAN {scan_id}] Stage 2 completed in {stage2_duration:.2f}ms")
         
         stage2_result = ScanStageResult(
             stage=2,
@@ -1382,6 +1396,12 @@ async def run_thoughts_scan(request: ScanRequest):
         
         # Calculate total duration
         total_duration = (datetime.now() - scan_start_time).total_seconds() * 1000
+        
+        # Log completion
+        print(f"🎉 [SCAN {scan_id}] Scan completed successfully!")
+        print(f"   Stage 1: {stage1_duration:.2f}ms ({stage1_duration/total_duration*100:.1f}%)")
+        print(f"   Stage 2: {stage2_duration:.2f}ms ({stage2_duration/total_duration*100:.1f}%)")
+        print(f"   Total: {total_duration:.2f}ms")
         
         # Include expanded keywords in response
         expanded_keywords = stage1_data["result"].get("all_variations_searched", request.keywords)
@@ -1397,6 +1417,10 @@ async def run_thoughts_scan(request: ScanRequest):
         )
         
     except Exception as e:
+        error_duration = (datetime.now() - scan_start_time).total_seconds() * 1000
+        print(f"❌ [SCAN {scan_id}] Scan failed after {error_duration:.2f}ms: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Scan failed: {str(e)}"
