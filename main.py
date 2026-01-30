@@ -183,105 +183,6 @@ MOCK_TWEETS_DB = {
 }
 
 
-async def expand_keyword_to_variations(keyword: str) -> Dict[str, List[str]]:
-    """
-    Expand a single keyword (ticker symbol or company name) to all related variations.
-    
-    For example:
-    - "AAPL" → ["AAPL", "Apple", "$AAPL", "Apple Inc."]
-    - "Apple" → ["AAPL", "Apple", "$AAPL", "Apple Inc."]
-    - "$AAPL" → ["AAPL", "Apple", "$AAPL", "Apple Inc."]
-    
-    Returns a dict with:
-    - "ticker": ticker symbol (e.g., "AAPL")
-    - "company_name": company name (e.g., "Apple")
-    - "variations": list of all keyword variations to search
-    """
-    keyword_clean = keyword.strip().upper().replace("$", "")
-    
-    # Try to look up ticker info
-    ticker_symbol = None
-    company_name = None
-    
-    # Check if it's already a ticker symbol (short, uppercase, alphanumeric)
-    if len(keyword_clean) <= 5 and keyword_clean.isalpha():
-        ticker_symbol = keyword_clean
-        # Try to get company name from ticker APIs
-        try:
-            import yfinance as yf
-            ticker = yf.Ticker(ticker_symbol)
-            info = ticker.info
-            if info:
-                company_name = info.get('longName') or info.get('shortName') or ticker_symbol
-        except:
-            # Fallback: use common mappings
-            common_companies = {
-                "AAPL": "Apple",
-                "TSLA": "Tesla",
-                "MSFT": "Microsoft",
-                "GOOGL": "Google",
-                "AMZN": "Amazon",
-                "META": "Meta",
-                "NVDA": "NVIDIA"
-            }
-            company_name = common_companies.get(ticker_symbol, ticker_symbol)
-    else:
-        # It's likely a company name, try to find ticker
-        company_name = keyword.strip()
-        # Try to search for ticker using APIs
-        try:
-            # Use OpenFIGI or Finnhub to find ticker
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                # Try OpenFIGI first
-                url = "https://api.openfigi.com/v3/search"
-                payload = [{"query": company_name, "exchCode": "US"}]
-                response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                if response.status_code == 200:
-                    data = response.json()
-                    if data and len(data) > 0 and len(data[0].get('data', [])) > 0:
-                        ticker_symbol = data[0]['data'][0].get('ticker', '').upper()
-        except:
-            pass
-    
-    # If we still don't have both, use defaults
-    if not ticker_symbol:
-        ticker_symbol = keyword_clean
-    if not company_name:
-        company_name = keyword.strip()
-    
-    # Generate all variations
-    variations = []
-    
-    # Add ticker variations
-    if ticker_symbol:
-        variations.append(ticker_symbol)  # AAPL
-        variations.append(f"${ticker_symbol}")  # $AAPL
-    
-    # Add company name variations
-    if company_name:
-        variations.append(company_name)  # Apple
-        # Add common variations
-        if "Inc." not in company_name and "Corporation" not in company_name:
-            variations.append(f"{company_name} Inc.")  # Apple Inc.
-        if "Corp" not in company_name.lower():
-            variations.append(f"{company_name} Corp")  # Apple Corp
-    
-    # Remove duplicates while preserving order
-    seen = set()
-    unique_variations = []
-    for v in variations:
-        v_lower = v.lower()
-        if v_lower not in seen:
-            seen.add(v_lower)
-            unique_variations.append(v)
-    
-    return {
-        "ticker": ticker_symbol,
-        "company_name": company_name,
-        "variations": unique_variations
-    }
-
-
 # Engagement weights for sentiment monitoring
 # Higher weight = more important for sentiment analysis
 ENGAGEMENT_WEIGHTS = {
@@ -955,14 +856,13 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 5, options: Optiona
     Stage 1: Broad Scan - Query X API and Rank Top 3-5 Most Popular Tweets
     
     Process:
-    1. Query X API for keyword matches (expands keywords to all variations)
+    1. Query X API for keyword matches (using keywords directly)
     2. Filter to verified accounts only (藍勾認證帳號 - blue checkmark accounts)
     3. Filter tweets to past 3 days
     4. Rank tweets by popularity (weighted engagement: views, likes, retweets)
     5. Return top 3-5 most popular tweets (prefer 5, at least 3)
     
-    This ensures that searching for "AAPL", "Apple", or "$AAPL" all find tweets
-    containing any of these variations from verified accounts, then ranks them by popularity.
+    Keywords are used directly without expansion for faster processing.
     """
     start_time = datetime.now()
     background_text = read_background()
@@ -978,35 +878,19 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 5, options: Optiona
     found_keywords = []
     
     if keywords:
-        # Check if keyword expansion should be skipped
-        # Default: skip expansion for both Mock Database and real API (user preference)
-        skip_expansion_default = True  # Skip by default
-        skip_expansion = options.get("skip_keyword_expansion", skip_expansion_default) if options else skip_expansion_default
+        # Use keywords directly (keyword expansion removed)
+        print(f"🔍 [STAGE1] Querying for keywords: {keywords}")
+        keyword_expansions = {kw: [kw] for kw in keywords}  # Each keyword maps to itself
+        all_variations_searched = keywords.copy()
         
-        if skip_expansion:
-            # Use keywords directly without expansion (faster)
-            print(f"⚡ Skipping keyword expansion - using keywords directly: {keywords}")
-            keyword_expansions = {kw: [kw] for kw in keywords}  # Each keyword maps to itself
-            all_variations_searched = keywords.copy()
-        else:
-            # Expand each keyword to all variations (slower but more comprehensive)
-            print(f"🔍 Expanding keywords to variations...")
-            for keyword in keywords:
-                expansion = await expand_keyword_to_variations(keyword)
-                keyword_expansions[keyword] = expansion["variations"]
-            all_variations_searched = []
-            for variations in keyword_expansions.values():
-                all_variations_searched.extend(variations)
-        
-        # Query X API for tweets matching keywords/variations
+        # Query X API for tweets matching keywords
         # Get more tweets than needed so we can rank and filter
         search_start = datetime.now()
         print(f"🔍 [STAGE1] Querying X API for {len(keyword_expansions)} keyword(s)...")
         all_tweets, searched_variations = await search_tweets(keyword_expansions, max_tweets=1000)
         search_duration = (datetime.now() - search_start).total_seconds() * 1000
         print(f"📊 [STAGE1] Found {len(all_tweets)} tweets in {search_duration:.2f}ms")
-        if not skip_expansion:
-            all_variations_searched = searched_variations
+        all_variations_searched = searched_variations
         
         # Step 2: Filter to past 3 days
         tweets_from_past_3_days = filter_tweets_by_timeframe(all_tweets, days=3)
@@ -1055,8 +939,7 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 5, options: Optiona
         "query_info": {
             "keywords_searched": keywords,
             "variations_searched": all_variations_searched if keywords else [],
-            "filter_applied": "verified accounts only (藍勾認證帳號)",
-            "keyword_expansion_skipped": skip_expansion if keywords else False
+            "filter_applied": "verified accounts only (藍勾認證帳號)"
         }
     }
     
@@ -1064,7 +947,7 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 5, options: Optiona
     if len(tweets) == 0 and keywords:
         print(f"DEBUG: Broad Scan Report - No tweets found")
         print(f"  Keywords: {keywords}")
-        print(f"  Variations searched: {all_variations_searched}")
+        print(f"  Keywords searched: {all_variations_searched}")
         print(f"  Total tweets queried: {len(all_tweets)}")
         print(f"  Tweets from past 3 days: {len(tweets_from_past_3_days)}")
     
@@ -1079,8 +962,7 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 5, options: Optiona
         # Tweet Discovery Results
         "tweets_found": len(tweets),
         "original_keywords": keywords,
-        "keyword_expansions": keyword_expansions,
-        "all_variations_searched": all_variations_searched,
+        "keywords_searched": all_variations_searched,
         "keywords_found": found_keywords,
         "tweets": tweets,
         "search_metadata": {
