@@ -396,15 +396,53 @@ async def query_x_api(query: str, max_results: int = 100) -> List[Dict[str, Any]
     Returns:
         List of tweet dictionaries with X API data (only verified accounts)
     """
+    import tweepy
+    import base64
+    import httpx
+    
+    # Try to get Bearer Token from OAuth 2.0 Client Credentials or use existing Bearer Token
     bearer_token = os.getenv('TWITTER_BEARER_TOKEN')
     
+    # If no Bearer Token, try to get one using OAuth 2.0 Client Credentials
     if not bearer_token or bearer_token == 'your_twitter_bearer_token_here':
-        # No API token configured, return empty list
+        client_id = os.getenv('X_API_CLIENT_ID')
+        client_secret = os.getenv('X_API_CLIENT_SECRET')
+        
+        if client_id and client_secret and client_id != 'your_client_id_here':
+            try:
+                # OAuth 2.0 Client Credentials flow to get Bearer Token
+                # Encode client credentials
+                credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+                
+                # Request Bearer Token
+                async with httpx.AsyncClient() as http_client:
+                    response = await http_client.post(
+                        "https://api.twitter.com/2/oauth2/token",
+                        headers={
+                            "Authorization": f"Basic {credentials}",
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        data={"grant_type": "client_credentials"}
+                    )
+                    
+                    if response.status_code == 200:
+                        token_data = response.json()
+                        bearer_token = token_data.get('access_token')
+                        print("✅ Successfully obtained Bearer Token using OAuth 2.0")
+                    else:
+                        print(f"⚠️ Failed to obtain Bearer Token: {response.status_code} - {response.text}")
+                        return []
+            except Exception as e:
+                print(f"⚠️ Error obtaining Bearer Token via OAuth 2.0: {e}")
+                return []
+        else:
+            # No API credentials configured, return empty list
+            return []
+    
+    if not bearer_token:
         return []
     
     try:
-        import tweepy
-        
         # Initialize Tweepy client
         client = tweepy.Client(bearer_token=bearer_token, wait_on_rate_limit=True)
         
@@ -571,7 +609,11 @@ async def search_tweets(keyword_variations: Dict[str, List[str]], max_tweets: in
     # Determine which method to use (priority: mock if forced > snscrape if forced > API > snscrape fallback > mock)
     use_mock_forced = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
     use_snscrape_forced = os.getenv('USE_SNSCRAPE', 'false').lower() == 'true'
-    use_api = os.getenv('TWITTER_BEARER_TOKEN') and os.getenv('TWITTER_BEARER_TOKEN') != 'your_twitter_bearer_token_here'
+    # Check if we have API credentials (Bearer Token or OAuth 2.0)
+    has_bearer_token = os.getenv('TWITTER_BEARER_TOKEN') and os.getenv('TWITTER_BEARER_TOKEN') != 'your_twitter_bearer_token_here'
+    has_oauth = os.getenv('X_API_CLIENT_ID') and os.getenv('X_API_CLIENT_SECRET') and \
+                os.getenv('X_API_CLIENT_ID') != 'your_client_id_here'
+    use_api = has_bearer_token or has_oauth
     api_failed = False
     
     # Priority order: Mock (forced) > Snscrape (forced) > API > Snscrape (fallback) > Mock (fallback)
