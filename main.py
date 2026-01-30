@@ -99,56 +99,86 @@ class TickerSearchResponse(BaseModel):
 # Mock tweet database for MVP (replace with actual Twitter API in production)
 # Includes variations: ticker symbols, company names, and $ticker formats
 MOCK_TWEETS_DB = {
-    # AAPL / Apple variations
+    # AAPL / Apple variations (ensure at least 5 tweets per keyword for consistent results)
     "AAPL": [
         {"text": "Apple's new iPhone is amazing! $AAPL https://www.apple.com/newsroom/2024/01/apple-announces-record-quarter/", "author": "@techfan", "likes": 150, "retweets": 45, "views": 5000},
         {"text": "Not impressed with Apple's latest earnings. $AAPL https://www.reuters.com/technology/apple-earnings", "author": "@investor", "likes": 23, "retweets": 8, "views": 1200},
         {"text": "Apple stock looking bullish today! $AAPL", "author": "@trader", "likes": 89, "retweets": 32, "views": 3500},
+        {"text": "Apple's innovation in AI is impressive $AAPL", "author": "@techanalyst", "likes": 95, "retweets": 28, "views": 3800},
+        {"text": "Long-term bullish on Apple's growth $AAPL", "author": "@longterm", "likes": 67, "retweets": 19, "views": 2400},
     ],
     "APPLE": [
         {"text": "Apple Inc. just announced amazing quarterly results!", "author": "@marketwatch", "likes": 203, "retweets": 67, "views": 8500},
         {"text": "Thinking about buying more Apple shares", "author": "@investor", "likes": 45, "retweets": 12, "views": 1800},
         {"text": "Apple's ecosystem is unbeatable", "author": "@techguru", "likes": 112, "retweets": 34, "views": 4200},
+        {"text": "Apple's services revenue is growing fast", "author": "@services", "likes": 88, "retweets": 25, "views": 3100},
+        {"text": "Apple Watch continues to dominate smartwatch market", "author": "@wearables", "likes": 76, "retweets": 21, "views": 2700},
     ],
     "APPLE INC": [
         {"text": "Apple Inc. continues to innovate in the tech space", "author": "@analyst", "likes": 78, "retweets": 23, "views": 2800},
+        {"text": "Apple Inc. stock performance is strong", "author": "@performance", "likes": 65, "retweets": 18, "views": 2200},
+        {"text": "Apple Inc. expanding into new markets", "author": "@expansion", "likes": 54, "retweets": 15, "views": 1900},
+        {"text": "Apple Inc. customer satisfaction remains high", "author": "@satisfaction", "likes": 72, "retweets": 20, "views": 2500},
+        {"text": "Apple Inc. supply chain resilience impressive", "author": "@supplychain", "likes": 61, "retweets": 17, "views": 2100},
     ],
-    # TSLA / Tesla variations
+    # TSLA / Tesla variations (ensure at least 5 tweets per keyword)
     "TSLA": [
         {"text": "Tesla's innovation is incredible! $TSLA https://www.tesla.com/blog/tesla-q4-2024-update", "author": "@evfan", "likes": 234, "retweets": 67, "views": 12000},
         {"text": "Concerned about Tesla's production delays $TSLA https://www.bloomberg.com/news/articles/2024-01-30/tesla-production", "author": "@analyst", "likes": 45, "retweets": 12, "views": 2500},
         {"text": "Elon Musk is revolutionizing transportation! $TSLA", "author": "@follower", "likes": 178, "retweets": 54, "views": 6800},
+        {"text": "Tesla's FSD technology is advancing rapidly $TSLA", "author": "@fsd", "likes": 156, "retweets": 48, "views": 7200},
+        {"text": "Tesla energy storage solutions are game-changing $TSLA", "author": "@energy", "likes": 128, "retweets": 38, "views": 5400},
     ],
     "TESLA": [
         {"text": "Tesla Model 3 is the best EV on the market", "author": "@evfan", "likes": 189, "retweets": 56, "views": 7500},
         {"text": "Tesla's Supercharger network is expanding rapidly", "author": "@evnews", "likes": 134, "retweets": 41, "views": 5200},
         {"text": "Long Tesla for the next decade", "author": "@trader", "likes": 92, "retweets": 28, "views": 3200},
+        {"text": "Tesla Cybertruck deliveries starting soon", "author": "@cybertruck", "likes": 201, "retweets": 62, "views": 8900},
+        {"text": "Tesla's manufacturing efficiency is unmatched", "author": "@manufacturing", "likes": 115, "retweets": 35, "views": 4800},
     ],
-    # MSFT / Microsoft variations
+    # MSFT / Microsoft variations (ensure at least 5 tweets per keyword)
     "MSFT": [
         {"text": "Microsoft Azure is dominating cloud computing! $MSFT https://azure.microsoft.com/en-us/blog/", "author": "@clouddev", "likes": 112, "retweets": 28, "views": 4500},
         {"text": "Microsoft's AI investments paying off $MSFT https://www.microsoft.com/en-us/investor", "author": "@technews", "likes": 156, "retweets": 41, "views": 6200},
+        {"text": "Microsoft Teams integration is seamless $MSFT", "author": "@collaboration", "likes": 98, "retweets": 29, "views": 3900},
+        {"text": "Microsoft's security solutions are top-notch $MSFT", "author": "@security", "likes": 124, "retweets": 36, "views": 5100},
+        {"text": "Microsoft stock continues to perform well $MSFT", "author": "@stock", "likes": 87, "retweets": 24, "views": 3300},
     ],
     "MICROSOFT": [
         {"text": "Microsoft Copilot is changing how we work", "author": "@productivity", "likes": 167, "retweets": 52, "views": 7800},
         {"text": "Microsoft's cloud revenue keeps growing", "author": "@cloudanalyst", "likes": 98, "retweets": 31, "views": 3800},
+        {"text": "Microsoft Office 365 adoption increasing", "author": "@office", "likes": 109, "retweets": 33, "views": 4400},
+        {"text": "Microsoft's gaming division showing strong growth", "author": "@gaming", "likes": 142, "retweets": 44, "views": 6500},
+        {"text": "Microsoft's enterprise solutions are comprehensive", "author": "@enterprise", "likes": 95, "retweets": 27, "views": 3600},
     ],
-    # GOOGL / Google variations
+    # GOOGL / Google variations (ensure at least 5 tweets per keyword)
     "GOOGL": [
         {"text": "Google's search dominance continues $GOOGL", "author": "@seoexpert", "likes": 98, "retweets": 19, "views": 3400},
         {"text": "Alphabet stock performing well $GOOGL", "author": "@investor", "likes": 67, "retweets": 15, "views": 2100},
+        {"text": "Google's advertising revenue remains strong $GOOGL", "author": "@advertising", "likes": 113, "retweets": 32, "views": 4700},
+        {"text": "Alphabet's YouTube growth is impressive $GOOGL", "author": "@youtube", "likes": 129, "retweets": 39, "views": 5800},
+        {"text": "Google's AI capabilities are industry-leading $GOOGL", "author": "@ai", "likes": 152, "retweets": 46, "views": 6900},
     ],
     "GOOGLE": [
         {"text": "Google's AI research is groundbreaking", "author": "@technews", "likes": 145, "retweets": 43, "views": 5600},
         {"text": "Google Cloud is gaining market share", "author": "@clouddev", "likes": 89, "retweets": 27, "views": 2900},
+        {"text": "Google Pixel phones are improving", "author": "@pixel", "likes": 102, "retweets": 30, "views": 4100},
+        {"text": "Google's Android ecosystem is vast", "author": "@android", "likes": 118, "retweets": 35, "views": 5000},
+        {"text": "Google Workspace productivity tools are excellent", "author": "@workspace", "likes": 94, "retweets": 28, "views": 3700},
     ],
     "ALPHABET": [
         {"text": "Alphabet's diverse portfolio is impressive", "author": "@investor", "likes": 76, "retweets": 22, "views": 2600},
+        {"text": "Alphabet's moonshot projects are innovative", "author": "@moonshot", "likes": 108, "retweets": 31, "views": 4300},
+        {"text": "Alphabet's Waymo autonomous driving progress", "author": "@waymo", "likes": 135, "retweets": 40, "views": 6000},
+        {"text": "Alphabet's healthcare initiatives promising", "author": "@healthcare", "likes": 91, "retweets": 26, "views": 3500},
+        {"text": "Alphabet's sustainability efforts commendable", "author": "@sustainability", "likes": 84, "retweets": 23, "views": 3000},
     ],
     "default": [
         {"text": "Great company with strong fundamentals!", "author": "@investor", "likes": 50, "retweets": 10, "views": 1500},
         {"text": "Mixed feelings about this stock", "author": "@trader", "likes": 30, "retweets": 5, "views": 800},
         {"text": "Bullish on this one!", "author": "@bull", "likes": 75, "retweets": 20, "views": 2200},
+        {"text": "Strong earnings report this quarter", "author": "@earnings", "likes": 65, "retweets": 18, "views": 1900},
+        {"text": "Market sentiment is positive", "author": "@market", "likes": 55, "retweets": 14, "views": 1600},
     ]
 }
 
@@ -779,7 +809,8 @@ async def search_tweets(keyword_variations: Dict[str, List[str]], max_tweets: in
                     tweet_copy["keyword"] = normalized
                     tweet_copy["id"] = f"tweet_{normalized}_{random.randint(1000, 9999)}"
                     
-                    days_ago = random.randint(0, 7)
+                    # Ensure tweets are within past 3 days for consistent filtering
+                    days_ago = random.randint(0, 2)  # 0-2 days ago (within past 3 days)
                     hours_ago = random.randint(0, 23)
                     tweet_time = now - timedelta(days=days_ago, hours=hours_ago)
                     tweet_copy["timestamp"] = tweet_time.isoformat()
@@ -919,16 +950,16 @@ def filter_tweets_by_timeframe(tweets: List[Dict[str, Any]], days: int = 3) -> L
     return filtered
 
 
-async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def stage1_scan(keywords: List[str], max_tweets: int = 5, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Stage 1: Broad Scan - Query X API and Rank Top 3 Most Popular Tweets
+    Stage 1: Broad Scan - Query X API and Rank Top 3-5 Most Popular Tweets
     
     Process:
     1. Query X API for keyword matches (expands keywords to all variations)
     2. Filter to verified accounts only (藍勾認證帳號 - blue checkmark accounts)
     3. Filter tweets to past 3 days
     4. Rank tweets by popularity (weighted engagement: views, likes, retweets)
-    5. Return top 3 most popular tweets
+    5. Return top 3-5 most popular tweets (prefer 5, at least 3)
     
     This ensures that searching for "AAPL", "Apple", or "$AAPL" all find tweets
     containing any of these variations from verified accounts, then ranks them by popularity.
@@ -938,7 +969,7 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optiona
     
     # Set default max_tweets if not provided
     if max_tweets is None:
-        max_tweets = 3  # Default to 3 popular tweets
+        max_tweets = 5  # Default to 5 (will return 3-5 based on availability)
     
     # Step 1: Query X API for keyword matches
     tweets = []
@@ -984,9 +1015,28 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optiona
         for tweet in tweets_from_past_3_days:
             tweet["popularity_score"] = calculate_popularity_score(tweet)
         
-        # Sort by popularity score (descending) and take top tweets
+        # Sort by popularity score (descending)
         tweets_from_past_3_days.sort(key=lambda x: x.get("popularity_score", 0), reverse=True)
-        tweets = tweets_from_past_3_days[:max_tweets]
+        
+        # Ensure we return 3-5 tweets (prefer 5, but at least 3 if available)
+        min_tweets = 3
+        preferred_tweets = 5
+        available_count = len(tweets_from_past_3_days)
+        
+        if available_count >= preferred_tweets:
+            # Return top 5 if we have enough
+            tweets = tweets_from_past_3_days[:preferred_tweets]
+        elif available_count >= min_tweets:
+            # Return all available if we have at least 3
+            tweets = tweets_from_past_3_days[:available_count]
+        else:
+            # Return what we have (less than 3)
+            tweets = tweets_from_past_3_days[:available_count]
+        
+        # Update max_tweets to reflect actual count returned
+        actual_count = len(tweets)
+        if actual_count < min_tweets and available_count > 0:
+            print(f"⚠️ [STAGE1] Only {actual_count} tweets available (requested {min_tweets}-{preferred_tweets})")
         
         # Extract keywords found
         found_keywords = list(set(tweet.get("keyword", "") for tweet in tweets))
@@ -1379,9 +1429,9 @@ async def run_sentiment_scan(request: ScanRequest):
     # Check if using Mock Database (no need for strict limits)
     use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
     
-    # Set max_tweets: default to 3 popular tweets
-    max_tweets = request.max_tweets or 3  # Default to 3 popular tweets
-    max_tweets = min(max_tweets, 10)  # Cap at 10 maximum
+    # Set max_tweets: ensure 3-5 tweets are returned
+    # The backend will return 3-5 tweets regardless of request (prefer 5, at least 3)
+    max_tweets = 5  # Request 5 tweets, backend will return 3-5 based on availability
     
     # Log scan start
     print(f"🚀 [SCAN {scan_id}] Starting scan with keywords: {request.keywords}, max_tweets: {max_tweets}")
