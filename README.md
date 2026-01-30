@@ -56,9 +56,36 @@ AI_BUILDER_TOKEN=your_api_key_here
 
 ## Running the Application
 
+### Option 1: Direct Python
+
 Start the FastAPI server:
 ```bash
 uvicorn main:app --reload
+```
+
+### Option 2: Docker
+
+Build and run with Docker:
+```bash
+# Build the Docker image
+docker build -t sentiment-radar:latest .
+
+# Run the container
+docker run -d \
+  --name sentiment-radar \
+  -p 8000:8000 \
+  --env-file .env \
+  sentiment-radar:latest
+```
+
+Or use Docker Compose:
+```bash
+docker-compose up -d
+```
+
+Test Docker setup:
+```bash
+./test-docker.sh
 ```
 
 The application will be available at:
