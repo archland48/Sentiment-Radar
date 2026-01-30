@@ -400,10 +400,10 @@ async def query_x_api(query: str, max_results: int = 100) -> List[Dict[str, Any]
     import base64
     import httpx
     
-    # Try to get Bearer Token from OAuth 2.0 Client Credentials or use existing Bearer Token
+    # Priority 1: Use Bearer Token directly (faster, no token exchange needed)
     bearer_token = os.getenv('TWITTER_BEARER_TOKEN')
     
-    # If no Bearer Token, try to get one using OAuth 2.0 Client Credentials
+    # Priority 2: If no Bearer Token, try to get one using OAuth 2.0 Client Credentials (slower)
     if not bearer_token or bearer_token == 'your_twitter_bearer_token_here':
         client_id = os.getenv('X_API_CLIENT_ID')
         client_secret = os.getenv('X_API_CLIENT_SECRET')
