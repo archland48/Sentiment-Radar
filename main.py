@@ -305,6 +305,86 @@ def analyze_thoughts(text: str) -> Dict[str, Any]:
     }
 
 
+async def query_x_api_snscrape(query: str, max_results: int = 100) -> List[Dict[str, Any]]:
+    """
+    Query X (Twitter) using snscrape (free, no API key required)
+    
+    ⚠️ WARNING: This violates Twitter's Terms of Service. Use at your own risk.
+    
+    Args:
+        query: Search query string
+        max_results: Maximum number of results
+    
+    Returns:
+        List of tweet dictionaries with X data
+    """
+    try:
+        import snscrape.modules.twitter as sntwitter
+        
+        tweets_data = []
+        
+        # Build query with filters
+        # Filter to past 3 days, English only, and verified accounts only (藍勾認證帳號)
+        from datetime import timedelta
+        since_date = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d')
+        full_query = f"{query} lang:en since:{since_date} filter:verified"
+        
+        print(f"Scraping tweets with snscrape (verified accounts only): {full_query}")
+        
+        # Scrape tweets
+        scraper = sntwitter.TwitterSearchScraper(full_query)
+        
+        for i, tweet in enumerate(scraper.get_items()):
+            if i >= max_results:
+                break
+            
+            try:
+                # Check if user is verified (snscrape may have verified field)
+                is_verified = False
+                if tweet.user:
+                    # Check verified status from user object
+                    is_verified = getattr(tweet.user, 'verified', False) or getattr(tweet.user, 'blue', False)
+                
+                # Only include verified accounts
+                if not is_verified:
+                    continue
+                
+                tweet_user = tweet.user
+                username = tweet_user.username if tweet_user else None
+                tweet_dict = {
+                    "id": str(tweet.id),
+                    "text": tweet.rawContent or tweet.content,
+                    "author": f"@{username}" if username else "Unknown",
+                    "author_type": tweet_user.displayname if tweet_user else "Unknown",
+                    "verified": True,  # Mark as verified account
+                    "timestamp": tweet.date.isoformat() if tweet.date else datetime.now().isoformat(),
+                    "likes": tweet.likeCount or 0,
+                    "retweets": tweet.retweetCount or 0,
+                    "views": tweet.viewCount or 0,  # May not always be available
+                    "replies": tweet.replyCount or 0,
+                    "x_url": f"https://x.com/{username}/status/{tweet.id}" if username and tweet.id else None,  # X.com link to the tweet
+                }
+                
+                # Estimate views if not available
+                if tweet_dict["views"] == 0:
+                    tweet_dict["views"] = (tweet_dict["likes"] + tweet_dict["retweets"]) * 10
+                
+                tweets_data.append(tweet_dict)
+            except Exception as e:
+                print(f"Error processing tweet: {e}")
+                continue
+        
+        print(f"Scraped {len(tweets_data)} tweets using snscrape")
+        return tweets_data
+        
+    except ImportError:
+        print("snscrape not installed. Install with: pip install snscrape")
+        return []
+    except Exception as e:
+        print(f"Error scraping with snscrape: {e}")
+        return []
+
+
 async def query_x_api(query: str, max_results: int = 100) -> List[Dict[str, Any]]:
     """
     Query X (Twitter) API v2 for tweets (verified accounts only - 藍勾認證帳號)
@@ -488,15 +568,21 @@ async def search_tweets(keyword_variations: Dict[str, List[str]], max_tweets: in
     tweets = []
     all_variations_searched = []
     
-    # Determine which method to use (priority: mock if forced > API > mock fallback)
+    # Determine which method to use (priority: mock if forced > snscrape if forced > API > snscrape fallback > mock)
     use_mock_forced = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
+    use_snscrape_forced = os.getenv('USE_SNSCRAPE', 'false').lower() == 'true'
     use_api = os.getenv('TWITTER_BEARER_TOKEN') and os.getenv('TWITTER_BEARER_TOKEN') != 'your_twitter_bearer_token_here'
+    api_failed = False
     
-    # Priority order: Mock (forced) > API > Mock (fallback)
+    # Priority order: Mock (forced) > Snscrape (forced) > API > Snscrape (fallback) > Mock (fallback)
     # If mock data is forced, skip everything and use mock directly
     if use_mock_forced:
         print("🧪 Test Mode: Using Mock Database (forced via USE_MOCK_DATA=true)")
-        # Skip API, will execute mock code in elif section below
+        # Skip API and snscrape, will execute mock code in elif section below
+    elif use_snscrape_forced:
+        print("🔧 Test Mode: Using snscrape (forced via USE_SNSCRAPE=true)")
+        print("⚠️ WARNING: snscrape violates Twitter's Terms of Service. Use at your own risk.")
+        # Skip API, will go directly to snscrape section below
     elif use_api:
         # Query real X API - OPTIMIZED: Merge all variations into single query per keyword
         print("Querying X API for tweets (optimized: merged queries)...")
@@ -547,21 +633,84 @@ async def search_tweets(keyword_variations: Dict[str, List[str]], max_tweets: in
                     tweets.append(tweet)
             
             print(f"Found {len(tweets)} tweets from X API (optimized: {len(keyword_variations)} API calls instead of {sum(len(v) for v in keyword_variations.values())})")
+            
+            # If API returned no results, try snscrape as fallback
+            if len(tweets) == 0:
+                print("⚠️ X API returned no results. Falling back to snscrape...")
+                api_failed = True
+            else:
+                # API succeeded, return results
+                pass
                 
         except Exception as e:
             print(f"❌ X API failed with error: {e}")
-            print("⚠️ Falling back to Mock Database...")
-            # Reset tweets list if API failed
+            print("⚠️ Falling back to snscrape...")
+            api_failed = True
+    
+    # Use snscrape if: forced via env var, or API failed/returned no results
+    if use_snscrape_forced or (use_api and api_failed):
+        # Use snscrape as free alternative or fallback - OPTIMIZED: Merge queries
+        if use_snscrape_forced:
+            # Already printed test mode message above
+            pass
+        elif api_failed:
+            print("🔄 Falling back to snscrape (X API had no results or failed)")
+        else:
+            print("Using snscrape to fetch tweets (free, no API key required)")
+        
+        if not use_snscrape_forced:
+            print("⚠️ WARNING: snscrape violates Twitter's Terms of Service. Use at your own risk.")
+        
+        # Reset tweets list if falling back from API
+        if api_failed:
             tweets = []
             all_variations_searched = []
-    
-    # Use mock data if: forced via env var, or API not configured/failed
-    if use_mock_forced or not use_api:
+        
+        for original_keyword, variations in keyword_variations.items():
+            all_variations_searched.extend(variations)
+            
+            # OPTIMIZATION: Merge all variations into single query
+            if len(variations) > 1:
+                or_queries = [f"({v})" for v in variations]
+                merged_query = " OR ".join(or_queries)
+            else:
+                merged_query = f"({variations[0]})"
+            
+            # Single scrape call for all variations
+            scraped_tweets = await query_x_api_snscrape(merged_query, max_results=max_tweets)
+            
+            # Add keyword context to tweets
+            for tweet in scraped_tweets:
+                tweet_text_lower = tweet.get("text", "").lower()
+                
+                # Determine which variation matched
+                matched_variations = []
+                for variation in variations:
+                    variation_lower = variation.lower()
+                    if variation_lower in tweet_text_lower or f"${variation_lower}" in tweet_text_lower:
+                        matched_variations.append(variation)
+                
+                matched_variation = matched_variations[0] if matched_variations else variations[0]
+                
+                tweet["original_keyword"] = original_keyword
+                tweet["matched_variation"] = matched_variation
+                tweet["matched_variations"] = matched_variations
+                tweet["keyword"] = matched_variation.upper().replace("$", "")
+                if "views" not in tweet or tweet["views"] == 0:
+                    tweet["views"] = (tweet.get("likes", 0) + tweet.get("retweets", 0)) * 10
+                
+                tweets.append(tweet)
+            
+            # Single delay per keyword (not per variation)
+            await asyncio.sleep(2)
+        
+        print(f"Found {len(tweets)} tweets using snscrape (optimized)")
+    elif use_mock_forced or (not use_api and not use_snscrape_forced and not (use_api and api_failed)):
         # Use mock data (forced or automatic fallback)
         if use_mock_forced:
             print("🧪 Using Mock Database for testing")
         else:
-            print("📦 Fallback: Using Mock Database (no API configured)")
+            print("📦 Fallback: Using Mock Database (no API/snscrape configured)")
         now = datetime.now()
         
         for original_keyword, variations in keyword_variations.items():
