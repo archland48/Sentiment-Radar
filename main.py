@@ -1226,45 +1226,25 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
                 "error": str(e)
             }
     
-    # Check if using Mock Database (no need for optimizations)
-    use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
-    
-    # Execute LLM calls: parallel for API (optimized) or sequential for Mock Database (no optimization needed)
+    # Execute LLM calls in parallel (optimized for speed)
     if analyzed_tweets:
         llm_start = datetime.now()
-        if use_mock_data:
-            # Sequential processing for Mock Database (no optimization needed, more reliable)
-            print(f"🚀 [STAGE2] Processing {len(analyzed_tweets)} tweets sequentially for Deep Dive Analysis (Mock Database mode)...")
-            for tweet in analyzed_tweets:
-                try:
-                    result = await analyze_single_tweet(tweet)
-                    if result is not None:
-                        deep_dive_analyses.append(result)
-                except Exception as e:
-                    deep_dive_analyses.append({
-                        "sentiment": "Neutral",
-                        "summary": f"Error analyzing tweet: {str(e)}",
-                        "reasoning": "Analysis error",
-                        "error": str(e)
-                    })
-        else:
-            # Parallel processing for real API (optimized for speed)
-            print(f"🚀 [STAGE2] Processing {len(analyzed_tweets)} tweets in parallel for Deep Dive Analysis...")
-            analysis_tasks = [analyze_single_tweet(tweet) for tweet in analyzed_tweets]
-            results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
-            
-            # Process results and filter out None values
-            for result in results:
-                if isinstance(result, Exception):
-                    # Handle exceptions from gather
-                    deep_dive_analyses.append({
-                        "sentiment": "Neutral",
-                        "summary": f"Error during parallel analysis: {str(result)}",
-                        "reasoning": "Parallel processing error",
-                        "error": str(result)
-                    })
-                elif result is not None:
-                    deep_dive_analyses.append(result)
+        print(f"🚀 [STAGE2] Processing {len(analyzed_tweets)} tweets in parallel for Deep Dive Analysis...")
+        analysis_tasks = [analyze_single_tweet(tweet) for tweet in analyzed_tweets]
+        results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
+        
+        # Process results and filter out None values
+        for result in results:
+            if isinstance(result, Exception):
+                # Handle exceptions from gather
+                deep_dive_analyses.append({
+                    "sentiment": "Neutral",
+                    "summary": f"Error during parallel analysis: {str(result)}",
+                    "reasoning": "Parallel processing error",
+                    "error": str(result)
+                })
+            elif result is not None:
+                deep_dive_analyses.append(result)
         
         llm_duration = (datetime.now() - llm_start).total_seconds() * 1000
         print(f"✅ [STAGE2] Completed {len(analyzed_tweets)} LLM calls in {llm_duration:.2f}ms (avg: {llm_duration/len(analyzed_tweets):.2f}ms per tweet)")
