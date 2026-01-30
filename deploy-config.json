@@ -1,0 +1,7 @@
+{
+  "repo_url": "YOUR_GITHUB_REPO_URL_HERE",
+  "service_name": "sentiment-alpha-radar",
+  "branch": "main",
+  "port": 8001,
+  "env_vars": {}
+}

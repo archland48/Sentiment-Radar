@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Alpha Radar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            flex-wrap: nowrap;
+            margin-bottom: 0;
+            position: relative;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .keyword-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .keyword-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .autocomplete-item:hover {
+            background: #f5f5f5;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-symbol {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .autocomplete-name {
+            color: #666;
+            font-size: 13px;
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .autocomplete-exchange {
+            color: #999;
+            font-size: 12px;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .keyword-tag {
+            background: #f0f0f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .keyword-tag .remove {
+            cursor: pointer;
+            color: #999;
+            font-weight: bold;
+        }
+
+        .keyword-tag .remove:hover {
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .stage-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stage-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stage-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #4caf50;
+            color: white;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .thoughts-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .thoughts-positive {
+            background: #4caf50;
+            color: white;
+        }
+
+        .thoughts-negative {
+            background: #f44336;
+            color: white;
+        }
+
+        .thoughts-neutral {
+            background: #9e9e9e;
+            color: white;
+        }
+
+        .tweets-list {
+            margin-top: 20px;
+        }
+
+        .tweet-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e0e0e0;
+        }
+
+        .tweet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .tweet-author {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .tweet-text {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .tweet-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .tweet-stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .insights-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insights-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .summary-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-stat {
+            text-align: center;
+        }
+
+        .summary-stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .summary-stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header" style="margin-bottom: 40px;">
+            <h1 style="font-size: 2em; margin-bottom: 10px;">📡 Sentiment Alpha Radar</h1>
+        </div>
+
+        <div class="card" style="max-width: 800px; margin: 0 auto; padding: 30px;">
+            <div class="input-section">
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="keywordInput" 
+                        class="keyword-input" 
+                        placeholder="输入股票代码或公司名称, 如 AAPL, Tesla"
+                        onkeypress="handleKeyPress(event)"
+                        oninput="handleInputChange(event)"
+                        onfocus="handleInputFocus(event)"
+                        onblur="handleInputBlur(event)"
+                    >
+                    <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+                </div>
+                <button class="btn btn-primary" onclick="runScan()" id="scanBtn" style="padding: 15px 30px; font-size: 16px; white-space: nowrap;">搜索</button>
+            </div>
+        </div>
+
+        <div id="loadingSection" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Scanning tweets and analyzing thoughts...</p>
+        </div>
+
+        <div id="errorSection" class="error" style="display: none;"></div>
+
+        <div id="resultsSection" class="results">
+            <div class="summary-card" id="summaryCard"></div>
+            <!-- Broad Scan and Deep Dive Reports will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        let keywords = [];
+        let autocompleteResults = [];
+        let selectedIndex = -1;
+        let searchTimeout = null;
+
+        function handleKeyPress(event) {
+            const dropdown = document.getElementById('autocompleteDropdown');
+            const items = dropdown.querySelectorAll('.autocomplete-item');
+            
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (selectedIndex >= 0 && autocompleteResults[selectedIndex]) {
+                    selectTickerByIndex(selectedIndex);
+                    // Auto-search after selecting
+                    setTimeout(() => runScan(), 300);
+                } else {
+                    // Direct search on Enter
+                    runScan();
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, autocompleteResults.length - 1);
+                updateSelectedItem();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelectedItem();
+            } else if (event.key === 'Escape') {
+                hideAutocomplete();
+            }
+        }
+
+        function handleInputChange(event) {
+            const query = event.target.value.trim();
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // Hide dropdown if empty
+            if (query.length === 0) {
+                hideAutocomplete();
+                return;
+            }
+            
+            // Debounce search
+            searchTimeout = setTimeout(() => {
+                searchTickers(query);
+            }, 300);
+        }
+
+        function handleInputFocus(event) {
+            const query = event.target.value.trim();
+            if (query.length > 0) {
+                searchTickers(query);
+            }
+        }
+
+        function handleInputBlur(event) {
+            // Delay hiding to allow click on dropdown items
+            setTimeout(() => {
+                hideAutocomplete();
+            }, 200);
+        }
+
+        async function searchTickers(query) {
+            if (query.length < 1) {
+                hideAutocomplete();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/tickers/search?q=${encodeURIComponent(query)}&limit=8`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                autocompleteResults = data.results || [];
+                selectedIndex = -1;
+                displayAutocomplete();
+            } catch (error) {
+                console.error('Ticker search error:', error);
+                hideAutocomplete();
+            }
+        }
+
+        function displayAutocomplete() {
+            const dropdown = document.getElementById('autocompleteDropdown');
+            
+            if (autocompleteResults.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+
+            dropdown.innerHTML = autocompleteResults.map((result, index) => `
+                <div class="autocomplete-item" 
+                     onclick="selectTickerByIndex(${index})"
+                     data-index="${index}">
+                    <div>
+                        <span class="autocomplete-symbol">${result.symbol}</span>
+                        <span class="autocomplete-name">${result.name}</span>
+                    </div>
+                    ${result.exchange ? `<span class="autocomplete-exchange">${result.exchange}</span>` : ''}
+                </div>
+            `).join('');
+
+            dropdown.classList.add('show');
+        }
+
+        function updateSelectedItem() {
+            const items = document.querySelectorAll('.autocomplete-item');
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.style.background = '#e3f2fd';
+                } else {
+                    item.style.background = '';
+                }
+            });
+        }
+
+        function selectTickerByIndex(index) {
+            if (index >= 0 && index < autocompleteResults.length) {
+                const ticker = autocompleteResults[index];
+                const input = document.getElementById('keywordInput');
+                // Set the ticker symbol in the input
+                const symbol = ticker.symbol;
+                if (symbol) {
+                    input.value = symbol;
+                    keywords = [symbol]; // Replace keywords with selected one
+                }
+                hideAutocomplete();
+            }
+        }
+
+        function selectTicker(ticker) {
+            const input = document.getElementById('keywordInput');
+            // Set the ticker symbol in the input
+            const symbol = ticker.symbol || ticker;
+            if (symbol) {
+                input.value = symbol;
+                keywords = [symbol]; // Replace keywords with selected one
+            }
+            hideAutocomplete();
+        }
+
+        function hideAutocomplete() {
+            const dropdown = document.getElementById('autocompleteDropdown');
+            dropdown.classList.remove('show');
+            autocompleteResults = [];
+            selectedIndex = -1;
+        }
+
+        async function runScan() {
+            const input = document.getElementById('keywordInput');
+            const inputValue = input.value.trim();
+            
+            if (!inputValue) {
+                alert('请输入股票代码或公司名称');
+                return;
+            }
+            
+            // Parse keywords from input (comma-separated or space-separated)
+            keywords = inputValue.split(/[,\s]+/)
+                .map(k => k.trim().toUpperCase())
+                .filter(k => k.length > 0);
+            
+            if (keywords.length === 0) {
+                alert('请输入有效的股票代码或公司名称');
+                return;
+            }
+
+            // Show loading, hide results and errors
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('resultsSection').classList.remove('show');
+            document.getElementById('errorSection').style.display = 'none';
+            document.getElementById('scanBtn').disabled = true;
+
+            try {
+                const response = await fetch('/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        keywords: keywords,
+                        max_tweets: 10
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                document.getElementById('errorSection').style.display = 'block';
+                document.getElementById('errorSection').textContent = `Error: ${error.message}`;
+            } finally {
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('scanBtn').disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            console.log("displayResults - Full data:", data);
+            
+            // Clear previous results (except summary card container)
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.innerHTML = '<div class="summary-card" id="summaryCard"></div>';
+            
+            // Check if data structure is correct
+            if (!data.stage1 || !data.stage2) {
+                console.error("Invalid data structure:", data);
+                document.getElementById('resultsSection').insertAdjacentHTML('beforeend', 
+                    '<div class="card" style="color: red;">Error: Invalid response structure</div>');
+                return;
+            }
+            
+            const stage1Data = data.stage1.result || {};
+            const stage2Data = data.stage2.result || {};
+            
+            console.log("Stage1 data:", stage1Data);
+            console.log("Stage2 data:", stage2Data);
+            
+            // Display Thoughts Analysis Summary first
+            displayThoughtsSummary(stage2Data, stage1Data);
+            
+            // Display Broad Scan Report
+            displayBroadScanReport(stage1Data);
+            
+            // Display Deep Dive Report
+            displayDeepDiveReport(stage2Data);
+            
+            // Display Insights
+            displayInsights(stage2Data);
+
+            // Show results
+            document.getElementById('resultsSection').classList.add('show');
+        }
+
+        function extractUrlsFromText(text) {
+            if (!text) return [];
+            // URL regex pattern - matches http/https URLs
+            const urlPattern = /https?:\/\/[^\s]+/g;
+            const urls = text.match(urlPattern) || [];
+            // Also check for URLs without protocol (www. or domain.com)
+            const domainPattern = /(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/g;
+            const domainUrls = text.match(domainPattern) || [];
+            // Combine and deduplicate
+            const allUrls = [...new Set([...urls, ...domainUrls])];
+            return allUrls;
+        }
+
+        function displayBroadScanReport(stage1Data) {
+            console.log("displayBroadScanReport - stage1Data:", stage1Data);
+            const broadScan = stage1Data.broad_scan || {};
+            const broadScanReport = broadScan.report || {};
+            const tweets = broadScanReport.tweets || [];
+            const timeframe = broadScanReport.timeframe || "past 3 days";
+            const rankingMethod = broadScanReport.ranking_method || "popularity_score";
+            
+            console.log("Broad Scan - tweets count:", tweets.length);
+            console.log("Broad Scan - report:", broadScanReport);
+            
+            // Show empty state instead of returning early
+            if (tweets.length === 0) {
+                const emptyHTML = `
+                    <div class="card" style="margin-bottom: 20px; border-left: 4px solid #667eea;">
+                        <h2 style="color: #667eea; margin-bottom: 15px;">🔍 Broad Scan Report</h2>
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            <p>No tweets found matching the search criteria.</p>
+                            <p style="font-size: 0.9em; margin-top: 10px; color: #999;">
+                                This could be because:
+                                <ul style="text-align: left; display: inline-block; margin-top: 10px;">
+                                    <li>No verified accounts tweeted about these keywords in the past 3 days</li>
+                                    <li>API quota limit reached</li>
+                                    <li>Search query returned no results</li>
+                                </ul>
+                            </p>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('resultsSection').insertAdjacentHTML('beforeend', emptyHTML);
+                return;
+            }
+            
+            // Tweets are already ranked by popularity_score, so we can use them as-is
+            // Add ranking numbers (1-10) for display
+            const rankedTweets = tweets.map((tweet, index) => ({
+                ...tweet,
+                number: index + 1,
+                popularity_score: tweet.popularity_score || 0
+            }));
+            
+            const broadScanHTML = `
+                <div class="card" style="margin-bottom: 20px; border-left: 4px solid #667eea;">
+                    <h2 style="color: #667eea; margin-bottom: 15px;">🔍 Broad Scan Report</h2>
+                    <div style="margin-bottom: 15px; color: #666; font-size: 0.95em;">
+                        Top <strong>${tweets.length}</strong> most popular tweets from ${timeframe} (ranked by popularity score)
+                        <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; padding: 4px 8px; background: #e3f2fd; border-radius: 12px; font-size: 0.85em;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; background: #1d9bf0; border-radius: 50%; color: white; font-size: 9px; font-weight: bold;">✓</span>
+                            Verified Accounts Only (藍勾認證帳號)
+                        </span>
+                    </div>
+                    ${broadScanReport.total_tweets_queried ? `
+                        <div style="margin-bottom: 10px; padding: 10px; background: #e3f2fd; border-radius: 6px; font-size: 0.85em; color: #555;">
+                            <strong>Query Results:</strong> Found ${broadScanReport.total_tweets_queried} tweets matching keywords
+                            ${broadScanReport.tweets_from_past_3_days ? `, ${broadScanReport.tweets_from_past_3_days} from past 3 days` : ''}
+                            ${rankingMethod ? `, ranked by ${rankingMethod}` : ''}
+                        </div>
+                    ` : ''}
+                    <div style="display: grid; gap: 15px; margin-top: 15px;">
+                        ${rankedTweets.map((tweet) => {
+                            // Extract URLs from tweet text
+                            const tweetText = tweet.text || '';
+                            const urls = extractUrlsFromText(tweetText);
+                            
+                            return `
+                            <div style="background: #f8f9fa; padding: 18px; border-radius: 8px; border-left: 4px solid #667eea;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <div style="font-weight: 600; color: #1976d2; font-size: 1.1em;">
+                                            #${tweet.number || ''}
+                                        </div>
+                                        ${tweet.popularity_score !== undefined ? `
+                                            <div style="background: #e3f2fd; padding: 4px 10px; border-radius: 12px; font-size: 0.75em; color: #1976d2; font-weight: 600;">
+                                                Score: ${tweet.popularity_score.toFixed(1)}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    ${(tweet.likes > 0 || tweet.retweets > 0 || tweet.views > 0) ? `
+                                        <div style="display: flex; gap: 15px; font-size: 0.85em; color: #666;">
+                                            ${tweet.views > 0 ? `<span>👁️ ${formatNumber(tweet.views)}</span>` : ''}
+                                            ${tweet.likes > 0 ? `<span>❤️ ${formatNumber(tweet.likes)}</span>` : ''}
+                                            ${tweet.retweets > 0 ? `<span>🔄 ${formatNumber(tweet.retweets)}</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #e0e0e0;">
+                                    <div style="color: #333; line-height: 1.6; font-size: 0.95em;">
+                                        "${tweetText}"
+                                    </div>
+                                </div>
+                                ${urls.length > 0 ? `
+                                    <div style="margin-bottom: 10px; padding: 12px; background: #e3f2fd; border-radius: 6px; border-left: 3px solid #2196f3;">
+                                        <div style="font-weight: 600; color: #1976d2; font-size: 0.85em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                                            🔗 URLs Found (${urls.length})
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                                            ${urls.map((url, idx) => {
+                                                // Ensure URL has protocol for proper linking
+                                                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                                                return `
+                                                    <a href="${fullUrl}" target="_blank" rel="noopener noreferrer" 
+                                                       style="color: #1976d2; text-decoration: none; font-size: 0.85em; word-break: break-all; padding: 6px 10px; background: white; border-radius: 4px; border: 1px solid #90caf9; transition: all 0.2s;"
+                                                       onmouseover="this.style.background='#bbdefb'; this.style.borderColor='#2196f3';"
+                                                       onmouseout="this.style.background='white'; this.style.borderColor='#90caf9';">
+                                                        ${idx + 1}. ${url.length > 60 ? url.substring(0, 60) + '...' : url}
+                                                        <span style="margin-left: 6px; opacity: 0.7;">↗</span>
+                                                    </a>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.85em;">
+                                    ${tweet.author || tweet.author_type ? `
+                                        <div>
+                                            <strong style="color: #666;">Author:</strong>
+                                            <span style="color: #333; display: inline-flex; align-items: center; gap: 4px;">
+                                                ${tweet.author || tweet.author_type || 'Unknown'}
+                                                ${tweet.verified ? `
+                                                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #1d9bf0; border-radius: 50%; color: white; font-size: 10px; font-weight: bold;" title="Verified Account (藍勾認證帳號)">
+                                                        ✓
+                                                    </span>
+                                                ` : ''}
+                                            </span>
+                                        </div>
+                                    ` : ''}
+                                    ${tweet.keywords && tweet.keywords.length > 0 ? `
+                                        <div>
+                                            <strong style="color: #666;">Keywords:</strong>
+                                            <span style="color: #333;">${tweet.keywords.join(', ')}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                ${tweet.relevance ? `
+                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                                        <strong style="color: #666; font-size: 0.85em;">Relevance:</strong>
+                                        <div style="color: #555; font-size: 0.85em; margin-top: 4px;">${tweet.relevance}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                        }).join('')}
+                    </div>
+                    ${broadScanReport.full_response ? `
+                        <details style="margin-top: 20px;">
+                            <summary style="cursor: pointer; color: #667eea; font-size: 0.9em; font-weight: 600;">View Full AI Response</summary>
+                            <div style="margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 0.85em; color: #555; white-space: pre-wrap; max-height: 400px; overflow-y: auto;">${broadScanReport.full_response}</div>
+                        </details>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('resultsSection').insertAdjacentHTML('beforeend', broadScanHTML);
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+
+        function displayDeepDiveReport(stage2Data) {
+            console.log("displayDeepDiveReport - stage2Data:", stage2Data);
+            const deepDive = stage2Data.deep_dive || {};
+            const deepDiveReport = deepDive.report || [];
+            
+            console.log("Deep Dive - report count:", deepDiveReport.length);
+            console.log("Deep Dive - deepDive:", deepDive);
+            
+            // Show empty state instead of returning early
+            if (deepDiveReport.length === 0) {
+                const emptyHTML = `
+                    <div class="card" style="margin-bottom: 20px; border-left: 4px solid #ff9800;">
+                        <h2 style="color: #ff9800; margin-bottom: 15px;">🔬 Deep Dive Report</h2>
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            <p>No tweets analyzed in Deep Dive.</p>
+                            <p style="font-size: 0.9em; margin-top: 10px; color: #999;">
+                                Deep Dive Analysis analyzes each tweet from Stage 1. No tweets were available for analysis.
+                            </p>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('resultsSection').insertAdjacentHTML('beforeend', emptyHTML);
+                return;
+            }
+            
+            // Count sentiments (handle both old 'importance' and new 'sentiment' fields for backward compatibility)
+            const sentimentCounts = {
+                Positive: deepDiveReport.filter(a => (a.sentiment || a.importance) === 'Positive' || a.sentiment === 'positive').length,
+                Neutral: deepDiveReport.filter(a => (a.sentiment || a.importance) === 'Neutral' || a.sentiment === 'neutral' || (a.sentiment || a.importance) === 'Medium').length,
+                Negative: deepDiveReport.filter(a => (a.sentiment || a.importance) === 'Negative' || a.sentiment === 'negative').length
+            };
+            
+            const deepDiveHTML = `
+                <div class="card" style="margin-bottom: 20px; border-left: 4px solid #ff9800;">
+                    <h2 style="color: #ff9800; margin-bottom: 15px;">🔬 Deep Dive Report</h2>
+                    <div style="margin-bottom: 15px; color: #666; font-size: 0.95em;">
+                        Analyzed <strong>${deepDive.tweets_analyzed || deepDive.urls_analyzed || 0}</strong> tweets from Stage 1
+                        ${deepDive.total_tweets ? `(out of ${deepDive.total_tweets} total tweets)` : ''}
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <div style="background: #e8f5e9; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #4caf50;">
+                            <div style="font-size: 2em; font-weight: bold; color: #4caf50;">${sentimentCounts.Positive}</div>
+                            <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Positive</div>
+                        </div>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #9e9e9e;">
+                            <div style="font-size: 2em; font-weight: bold; color: #9e9e9e;">${sentimentCounts.Neutral}</div>
+                            <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Neutral</div>
+                        </div>
+                        <div style="background: #ffebee; padding: 15px; border-radius: 6px; text-align: center; border-left: 4px solid #f44336;">
+                            <div style="font-size: 2em; font-weight: bold; color: #f44336;">${sentimentCounts.Negative}</div>
+                            <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Negative</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; gap: 15px;">
+                        ${deepDiveReport.map((analysis, idx) => {
+                            // Get sentiment (handle backward compatibility with 'importance' field)
+                            let sentiment = analysis.sentiment || analysis.importance || 'Neutral';
+                            // Normalize sentiment value
+                            if (typeof sentiment === 'string') {
+                                sentiment = sentiment.charAt(0).toUpperCase() + sentiment.slice(1).toLowerCase();
+                                if (sentiment === 'Medium' || sentiment === 'High' || sentiment === 'Low') {
+                                    // Map old importance values to sentiment
+                                    sentiment = sentiment === 'High' ? 'Positive' : (sentiment === 'Low' ? 'Negative' : 'Neutral');
+                                }
+                                if (!['Positive', 'Neutral', 'Negative'].includes(sentiment)) {
+                                    sentiment = 'Neutral';
+                                }
+                            }
+                            
+                            const sentimentColor = {
+                                'Positive': '#4caf50',
+                                'Neutral': '#9e9e9e',
+                                'Negative': '#f44336'
+                            }[sentiment] || '#9e9e9e';
+                            
+                            const bgColor = {
+                                'Positive': '#e8f5e9',
+                                'Neutral': '#f5f5f5',
+                                'Negative': '#ffebee'
+                            }[sentiment] || '#f5f5f5';
+                            
+                            return `
+                                <div style="background: ${bgColor}; padding: 18px; border-radius: 8px; border-left: 4px solid ${sentimentColor};">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                                        <div style="flex: 1;">
+                                            <span style="background: ${sentimentColor}; color: white; padding: 6px 14px; border-radius: 16px; font-size: 0.8em; font-weight: 600; margin-right: 10px;">
+                                                ${sentiment}
+                                            </span>
+                                            ${analysis.tweet_x_url ? `
+                                                <a href="${analysis.tweet_x_url}" target="_blank" rel="noopener noreferrer" 
+                                                   style="color: #667eea; text-decoration: none; font-size: 0.85em; margin-left: 8px; font-weight: 500;">
+                                                    View on X.com ↗
+                                                </a>
+                                            ` : analysis.tweet_id ? `
+                                                <span style="color: #666; font-size: 0.85em; margin-left: 8px;">
+                                                    Tweet ID: ${analysis.tweet_id}
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    ${analysis.tweet_text ? `
+                                        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 4px; border-left: 3px solid ${sentimentColor};">
+                                            <strong style="color: #666; font-size: 0.85em; display: block; margin-bottom: 5px;">Tweet Content:</strong>
+                                            <div style="color: #555; font-size: 0.9em; line-height: 1.5; font-style: italic;">
+                                                "${analysis.tweet_text}${analysis.tweet_text.length >= 200 ? '...' : ''}"
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    ${analysis.tweet_urls && analysis.tweet_urls.length > 0 ? `
+                                        <div style="margin-bottom: 10px; padding: 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ff9800;">
+                                            <strong style="color: #ff9800; display: block; margin-bottom: 5px;">🔗 External Links in Tweet:</strong>
+                                            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
+                                                ${analysis.tweet_urls.map(url => `
+                                                    <a href="${url.startsWith('http') ? url : 'https://' + url}" target="_blank" rel="noopener noreferrer" 
+                                                       style="color: #ff9800; text-decoration: none; word-break: break-all; padding: 4px 8px; background: white; border-radius: 3px; border: 1px solid #ffcc80;">
+                                                        ${url.length > 60 ? url.substring(0, 60) + '...' : url} ↗
+                                                    </a>
+                                                `).join('')}
+                                            </div>
+                                            <div style="margin-top: 6px; font-size: 0.75em; color: #999; font-style: italic;">
+                                                Note: These are external links mentioned in the tweet (e.g., news articles), not the tweet itself.
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    <div style="margin-bottom: 10px;">
+                                        <strong style="color: #333; display: block; margin-bottom: 5px;">Summary:</strong>
+                                        <div style="color: #555; margin-left: 0; line-height: 1.6;">${analysis.summary || 'No summary available'}</div>
+                                    </div>
+                                    <div>
+                                        <strong style="color: #333; display: block; margin-bottom: 5px;">Reasoning:</strong>
+                                        <div style="color: #666; margin-left: 0; font-size: 0.9em; line-height: 1.6;">${analysis.reasoning || 'No reasoning provided'}</div>
+                                    </div>
+                                    ${analysis.tweet_text ? `
+                                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.1); font-size: 0.85em; color: #888;">
+                                            <strong>From tweet:</strong> "${analysis.tweet_text}..."
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultsSection').insertAdjacentHTML('beforeend', deepDiveHTML);
+        }
+
+        function displayThoughtsSummary(stage2Data, stage1Data) {
+            const summary = stage2Data.aggregate_thoughts || stage2Data.aggregate_sentiment || {};
+            const keywordExpansions = stage1Data.keyword_expansions || {};
+            const weightedAvg = summary.weighted_average_score !== undefined ? summary.weighted_average_score : summary.average_score;
+            
+            const summaryHTML = `
+                <div class="summary-title">📊 Thoughts Analysis Summary</div>
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <div class="summary-stat-value">${weightedAvg.toFixed(3)}</div>
+                        <div class="summary-stat-label">Weighted Avg Thoughts</div>
+                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 4px;">
+                            (Unweighted: ${summary.average_score.toFixed(3)})
+                        </div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value">${summary.total_tweets}</div>
+                        <div class="summary-stat-label">Tweets Analyzed</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value">${summary.positive_count}</div>
+                        <div class="summary-stat-label">Positive</div>
+                        ${summary.weighted_positive !== undefined ? `
+                            <div style="font-size: 0.7em; opacity: 0.8; margin-top: 4px;">
+                                Weighted: ${summary.weighted_positive.toFixed(1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value">${summary.negative_count}</div>
+                        <div class="summary-stat-label">Negative</div>
+                        ${summary.weighted_negative !== undefined ? `
+                            <div style="font-size: 0.7em; opacity: 0.8; margin-top: 4px;">
+                                Weighted: ${summary.weighted_negative.toFixed(1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-stat-value">${summary.neutral_count}</div>
+                        <div class="summary-stat-label">Neutral</div>
+                        ${summary.weighted_neutral !== undefined ? `
+                            <div style="font-size: 0.7em; opacity: 0.8; margin-top: 4px;">
+                                Weighted: ${summary.weighted_neutral.toFixed(1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                ${Object.keys(keywordExpansions).length > 0 ? `
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 10px;">🔍 Keywords Expanded:</div>
+                        ${Object.entries(keywordExpansions).map(([original, variations]) => `
+                            <div style="margin-bottom: 8px; font-size: 0.85em;">
+                                <strong>${original}</strong> → ${variations.join(', ')}
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('summaryCard').innerHTML = summaryHTML;
+        }
+
+        function displayInsights(stage2Data) {
+            if (!stage2Data.insights || stage2Data.insights.length === 0) {
+                return;
+            }
+            
+            const insightsHTML = `
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #333;">💡 Insights</h3>
+                    <ul class="insights-list">
+                        ${stage2Data.insights.map(insight => `<li>${insight}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            document.getElementById('resultsSection').insertAdjacentHTML('beforeend', insightsHTML);
+        }
+
+
+        // Initialize - no keywords list needed for simple search interface
+    </script>
+</body>
+</html>
