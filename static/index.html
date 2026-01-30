@@ -620,7 +620,7 @@
                     },
                     body: JSON.stringify({
                         keywords: keywords,
-                        max_tweets: 3,  // Default to 3 popular tweets
+                        max_tweets: 5,  // Request 5 tweets (backend will return 3-5)
                         options: {
                             skip_ai_insights: true,  // Skip AI insights (user preference)
                             skip_keyword_expansion: true  // Skip keyword expansion (user preference)

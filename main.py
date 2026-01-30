@@ -44,7 +44,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class ScanRequest(BaseModel):
     """Request model for sentiment scan"""
     keywords: List[str]
-    max_tweets: Optional[int] = 3  # Default to 3 popular tweets
+    max_tweets: Optional[int] = 5  # Default to 5 (will return 3-5 based on availability)
     options: Optional[Dict[str, Any]] = None
 
 
