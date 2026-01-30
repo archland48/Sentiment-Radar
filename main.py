@@ -1289,12 +1289,11 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     basic_insights.append(f"Found {positive_count} positive, {negative_count} negative, and {neutral_count} neutral tweets")
     
     # Generate AI-powered insights
-    # For Mock Database: enable by default (no timeout concerns)
-    # For real API: skip by default to prevent 504 timeout
+    # Default: skip AI insights (user preference)
     ai_insights = []
-    skip_ai_insights = not use_mock_data  # Enable for Mock Database, skip for real API by default
+    skip_ai_insights = True  # Skip by default
     if options and options.get("skip_ai_insights") is not None:
-        skip_ai_insights = options.get("skip_ai_insights", skip_ai_insights)
+        skip_ai_insights = options.get("skip_ai_insights", True)
     
     if not skip_ai_insights:
         try:
