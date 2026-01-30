@@ -1227,8 +1227,9 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     basic_insights.append(f"Found {positive_count} positive, {negative_count} negative, and {neutral_count} neutral tweets")
     
     # Generate AI-powered insights (optional, can be skipped to save time)
+    # Default to skipping to prevent 504 timeout (saves 3-8 seconds)
     ai_insights = []
-    skip_ai_insights = options and options.get("skip_ai_insights", False)
+    skip_ai_insights = options and options.get("skip_ai_insights", True) if options else True
     
     if not skip_ai_insights:
         try:

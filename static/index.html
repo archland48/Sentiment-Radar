@@ -620,7 +620,10 @@
                     },
                     body: JSON.stringify({
                         keywords: keywords,
-                        max_tweets: 2  // Reduced to prevent 504 timeout
+                        max_tweets: 2,  // Reduced to prevent 504 timeout
+                        options: {
+                            skip_ai_insights: true  // Skip AI insights to save 3-8 seconds
+                        }
                     })
                 });
 
