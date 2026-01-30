@@ -132,21 +132,9 @@ AI_BUILDER_TOKEN=sk_abfba6d6_...
 TWITTER_BEARER_TOKEN=AAAAAAAAAAAAAAAAAAAAA...
 ```
 
-## Alternative: Free snscrape Option
-
-If you don't want to use the official API, you can use **snscrape** (free, no API key required):
-
-1. Set `USE_SNSCRAPE=true` in `.env`
-2. Install snscrape: `pip install snscrape`
-3. Restart the application
-
-⚠️ **Warning**: snscrape violates Twitter's Terms of Service. Use at your own risk.
-
-See `FREE_X_API_ALTERNATIVES.md` for more details on free alternatives.
-
 ## Next Steps
 
-### Option A: Official Twitter API (Recommended)
+### Official Twitter API (Required)
 1. Set up Twitter Developer account
 2. Create app and generate Bearer Token
 3. Add token to `.env` file: `TWITTER_BEARER_TOKEN=your_token`
@@ -154,7 +142,4 @@ See `FREE_X_API_ALTERNATIVES.md` for more details on free alternatives.
 5. Restart the application
 6. Test with a search query
 
-3. Restart the application
-4. Test with a search query
-
-The application will automatically use the configured method!
+The application will automatically use the configured API!
