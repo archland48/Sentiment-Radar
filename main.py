@@ -99,13 +99,18 @@ class TickerSearchResponse(BaseModel):
 # Mock tweet database for MVP (replace with actual Twitter API in production)
 # Includes variations: ticker symbols, company names, and $ticker formats
 MOCK_TWEETS_DB = {
-    # AAPL / Apple variations (ensure at least 5 tweets per keyword for consistent results)
+    # AAPL / Apple variations (ensure 10 tweets per keyword for consistent results)
     "AAPL": [
         {"text": "Apple's new iPhone is amazing! $AAPL https://www.apple.com/newsroom/2024/01/apple-announces-record-quarter/", "author": "@techfan", "likes": 150, "retweets": 45, "views": 5000},
         {"text": "Not impressed with Apple's latest earnings. $AAPL https://www.reuters.com/technology/apple-earnings", "author": "@investor", "likes": 23, "retweets": 8, "views": 1200},
         {"text": "Apple stock looking bullish today! $AAPL", "author": "@trader", "likes": 89, "retweets": 32, "views": 3500},
         {"text": "Apple's innovation in AI is impressive $AAPL", "author": "@techanalyst", "likes": 95, "retweets": 28, "views": 3800},
         {"text": "Long-term bullish on Apple's growth $AAPL", "author": "@longterm", "likes": 67, "retweets": 19, "views": 2400},
+        {"text": "Apple's ecosystem lock-in is concerning $AAPL", "author": "@critic", "likes": 42, "retweets": 15, "views": 1800},
+        {"text": "Apple Watch Series 10 is a game changer $AAPL", "author": "@wearable", "likes": 118, "retweets": 36, "views": 4200},
+        {"text": "Apple's privacy stance is admirable $AAPL", "author": "@privacy", "likes": 134, "retweets": 41, "views": 4800},
+        {"text": "Concerned about Apple's China dependency $AAPL", "author": "@geopolitics", "likes": 56, "retweets": 22, "views": 2600},
+        {"text": "Apple's M3 chip performance is outstanding $AAPL", "author": "@hardware", "likes": 142, "retweets": 44, "views": 5100},
     ],
     "APPLE": [
         {"text": "Apple Inc. just announced amazing quarterly results!", "author": "@marketwatch", "likes": 203, "retweets": 67, "views": 8500},
@@ -113,6 +118,11 @@ MOCK_TWEETS_DB = {
         {"text": "Apple's ecosystem is unbeatable", "author": "@techguru", "likes": 112, "retweets": 34, "views": 4200},
         {"text": "Apple's services revenue is growing fast", "author": "@services", "likes": 88, "retweets": 25, "views": 3100},
         {"text": "Apple Watch continues to dominate smartwatch market", "author": "@wearables", "likes": 76, "retweets": 21, "views": 2700},
+        {"text": "Apple's customer service is top-notch", "author": "@support", "likes": 98, "retweets": 29, "views": 3400},
+        {"text": "Disappointed with Apple's pricing strategy", "author": "@consumer", "likes": 34, "retweets": 11, "views": 1400},
+        {"text": "Apple's AR/VR headset is revolutionary", "author": "@ar", "likes": 156, "retweets": 48, "views": 5600},
+        {"text": "Apple Music is competing well with Spotify", "author": "@music", "likes": 87, "retweets": 26, "views": 3200},
+        {"text": "Apple's environmental initiatives are commendable", "author": "@green", "likes": 124, "retweets": 38, "views": 4500},
     ],
     "APPLE INC": [
         {"text": "Apple Inc. continues to innovate in the tech space", "author": "@analyst", "likes": 78, "retweets": 23, "views": 2800},
@@ -120,14 +130,24 @@ MOCK_TWEETS_DB = {
         {"text": "Apple Inc. expanding into new markets", "author": "@expansion", "likes": 54, "retweets": 15, "views": 1900},
         {"text": "Apple Inc. customer satisfaction remains high", "author": "@satisfaction", "likes": 72, "retweets": 20, "views": 2500},
         {"text": "Apple Inc. supply chain resilience impressive", "author": "@supplychain", "likes": 61, "retweets": 17, "views": 2100},
+        {"text": "Apple Inc. dividend yield is attractive", "author": "@dividend", "likes": 89, "retweets": 27, "views": 3300},
+        {"text": "Apple Inc. faces regulatory challenges", "author": "@regulation", "likes": 48, "retweets": 16, "views": 2000},
+        {"text": "Apple Inc. R&D spending is impressive", "author": "@rd", "likes": 103, "retweets": 31, "views": 3700},
+        {"text": "Apple Inc. brand value remains #1", "author": "@brand", "likes": 116, "retweets": 35, "views": 4100},
+        {"text": "Apple Inc. Mac sales are recovering", "author": "@mac", "likes": 94, "retweets": 28, "views": 3500},
     ],
-    # TSLA / Tesla variations (ensure at least 5 tweets per keyword)
+    # TSLA / Tesla variations (ensure 10 tweets per keyword)
     "TSLA": [
         {"text": "Tesla's innovation is incredible! $TSLA https://www.tesla.com/blog/tesla-q4-2024-update", "author": "@evfan", "likes": 234, "retweets": 67, "views": 12000},
         {"text": "Concerned about Tesla's production delays $TSLA https://www.bloomberg.com/news/articles/2024-01-30/tesla-production", "author": "@analyst", "likes": 45, "retweets": 12, "views": 2500},
         {"text": "Elon Musk is revolutionizing transportation! $TSLA", "author": "@follower", "likes": 178, "retweets": 54, "views": 6800},
         {"text": "Tesla's FSD technology is advancing rapidly $TSLA", "author": "@fsd", "likes": 156, "retweets": 48, "views": 7200},
         {"text": "Tesla energy storage solutions are game-changing $TSLA", "author": "@energy", "likes": 128, "retweets": 38, "views": 5400},
+        {"text": "Tesla's charging network expansion is impressive $TSLA", "author": "@charging", "likes": 142, "retweets": 43, "views": 6100},
+        {"text": "Worried about Tesla's competition catching up $TSLA", "author": "@competition", "likes": 52, "retweets": 19, "views": 2300},
+        {"text": "Tesla Model Y is dominating EV sales $TSLA", "author": "@sales", "likes": 167, "retweets": 51, "views": 7400},
+        {"text": "Tesla's margins are under pressure $TSLA", "author": "@margins", "likes": 38, "retweets": 13, "views": 1700},
+        {"text": "Tesla's robotaxi vision is exciting $TSLA", "author": "@robotaxi", "likes": 189, "retweets": 58, "views": 8200},
     ],
     "TESLA": [
         {"text": "Tesla Model 3 is the best EV on the market", "author": "@evfan", "likes": 189, "retweets": 56, "views": 7500},
@@ -135,14 +155,24 @@ MOCK_TWEETS_DB = {
         {"text": "Long Tesla for the next decade", "author": "@trader", "likes": 92, "retweets": 28, "views": 3200},
         {"text": "Tesla Cybertruck deliveries starting soon", "author": "@cybertruck", "likes": 201, "retweets": 62, "views": 8900},
         {"text": "Tesla's manufacturing efficiency is unmatched", "author": "@manufacturing", "likes": 115, "retweets": 35, "views": 4800},
+        {"text": "Tesla's battery technology leads the industry", "author": "@battery", "likes": 148, "retweets": 45, "views": 6600},
+        {"text": "Concerned about Tesla's quality control issues", "author": "@quality", "likes": 41, "retweets": 14, "views": 1900},
+        {"text": "Tesla's solar roof is gaining traction", "author": "@solar", "likes": 123, "retweets": 37, "views": 5300},
+        {"text": "Tesla's valuation seems stretched", "author": "@valuation", "likes": 47, "retweets": 17, "views": 2100},
+        {"text": "Tesla's global expansion is accelerating", "author": "@global", "likes": 135, "retweets": 41, "views": 5800},
     ],
-    # MSFT / Microsoft variations (ensure at least 5 tweets per keyword)
+    # MSFT / Microsoft variations (ensure 10 tweets per keyword)
     "MSFT": [
         {"text": "Microsoft Azure is dominating cloud computing! $MSFT https://azure.microsoft.com/en-us/blog/", "author": "@clouddev", "likes": 112, "retweets": 28, "views": 4500},
         {"text": "Microsoft's AI investments paying off $MSFT https://www.microsoft.com/en-us/investor", "author": "@technews", "likes": 156, "retweets": 41, "views": 6200},
         {"text": "Microsoft Teams integration is seamless $MSFT", "author": "@collaboration", "likes": 98, "retweets": 29, "views": 3900},
         {"text": "Microsoft's security solutions are top-notch $MSFT", "author": "@security", "likes": 124, "retweets": 36, "views": 5100},
         {"text": "Microsoft stock continues to perform well $MSFT", "author": "@stock", "likes": 87, "retweets": 24, "views": 3300},
+        {"text": "Microsoft Copilot is transforming productivity $MSFT", "author": "@copilot", "likes": 168, "retweets": 52, "views": 7900},
+        {"text": "Microsoft's acquisition strategy is aggressive $MSFT", "author": "@mna", "likes": 76, "retweets": 23, "views": 2900},
+        {"text": "Microsoft Surface devices are improving $MSFT", "author": "@surface", "likes": 109, "retweets": 33, "views": 4400},
+        {"text": "Microsoft's open source contributions are significant $MSFT", "author": "@opensource", "likes": 132, "retweets": 40, "views": 5700},
+        {"text": "Microsoft's enterprise contracts are strong $MSFT", "author": "@enterprise", "likes": 145, "retweets": 44, "views": 6400},
     ],
     "MICROSOFT": [
         {"text": "Microsoft Copilot is changing how we work", "author": "@productivity", "likes": 167, "retweets": 52, "views": 7800},
@@ -150,14 +180,24 @@ MOCK_TWEETS_DB = {
         {"text": "Microsoft Office 365 adoption increasing", "author": "@office", "likes": 109, "retweets": 33, "views": 4400},
         {"text": "Microsoft's gaming division showing strong growth", "author": "@gaming", "likes": 142, "retweets": 44, "views": 6500},
         {"text": "Microsoft's enterprise solutions are comprehensive", "author": "@enterprise", "likes": 95, "retweets": 27, "views": 3600},
+        {"text": "Microsoft's LinkedIn integration is valuable", "author": "@linkedin", "likes": 118, "retweets": 36, "views": 4700},
+        {"text": "Microsoft's Windows 12 preview looks promising", "author": "@windows", "likes": 154, "retweets": 47, "views": 7000},
+        {"text": "Microsoft's sustainability goals are ambitious", "author": "@sustainability", "likes": 101, "retweets": 30, "views": 4000},
+        {"text": "Microsoft's developer tools are excellent", "author": "@devtools", "likes": 127, "retweets": 39, "views": 5500},
+        {"text": "Microsoft's partnership with OpenAI is strategic $MSFT", "author": "@ai", "likes": 176, "retweets": 54, "views": 8100},
     ],
-    # GOOGL / Google variations (ensure at least 5 tweets per keyword)
+    # GOOGL / Google variations (ensure 10 tweets per keyword)
     "GOOGL": [
         {"text": "Google's search dominance continues $GOOGL", "author": "@seoexpert", "likes": 98, "retweets": 19, "views": 3400},
         {"text": "Alphabet stock performing well $GOOGL", "author": "@investor", "likes": 67, "retweets": 15, "views": 2100},
         {"text": "Google's advertising revenue remains strong $GOOGL", "author": "@advertising", "likes": 113, "retweets": 32, "views": 4700},
         {"text": "Alphabet's YouTube growth is impressive $GOOGL", "author": "@youtube", "likes": 129, "retweets": 39, "views": 5800},
         {"text": "Google's AI capabilities are industry-leading $GOOGL", "author": "@ai", "likes": 152, "retweets": 46, "views": 6900},
+        {"text": "Google Cloud is gaining enterprise customers $GOOGL", "author": "@cloud", "likes": 138, "retweets": 42, "views": 6000},
+        {"text": "Alphabet's antitrust concerns are mounting $GOOGL", "author": "@antitrust", "likes": 44, "retweets": 16, "views": 2000},
+        {"text": "Google Pixel 9 is receiving great reviews $GOOGL", "author": "@pixel", "likes": 147, "retweets": 45, "views": 6700},
+        {"text": "Alphabet's Waymo progress is accelerating $GOOGL", "author": "@waymo", "likes": 161, "retweets": 49, "views": 7200},
+        {"text": "Google's Gemini AI is competitive $GOOGL", "author": "@gemini", "likes": 174, "retweets": 53, "views": 7800},
     ],
     "GOOGLE": [
         {"text": "Google's AI research is groundbreaking", "author": "@technews", "likes": 145, "retweets": 43, "views": 5600},
@@ -165,6 +205,11 @@ MOCK_TWEETS_DB = {
         {"text": "Google Pixel phones are improving", "author": "@pixel", "likes": 102, "retweets": 30, "views": 4100},
         {"text": "Google's Android ecosystem is vast", "author": "@android", "likes": 118, "retweets": 35, "views": 5000},
         {"text": "Google Workspace productivity tools are excellent", "author": "@workspace", "likes": 94, "retweets": 28, "views": 3700},
+        {"text": "Google's search quality is declining", "author": "@searcher", "likes": 36, "retweets": 12, "views": 1600},
+        {"text": "Google's Chrome browser dominance continues", "author": "@browser", "likes": 121, "retweets": 37, "views": 5200},
+        {"text": "Google's Maps accuracy is impressive", "author": "@maps", "likes": 133, "retweets": 40, "views": 5900},
+        {"text": "Google's privacy practices are concerning", "author": "@privacy", "likes": 51, "retweets": 18, "views": 2200},
+        {"text": "Google's Tensor chips are improving", "author": "@hardware", "likes": 128, "retweets": 39, "views": 5400},
     ],
     "ALPHABET": [
         {"text": "Alphabet's diverse portfolio is impressive", "author": "@investor", "likes": 76, "retweets": 22, "views": 2600},
@@ -172,6 +217,11 @@ MOCK_TWEETS_DB = {
         {"text": "Alphabet's Waymo autonomous driving progress", "author": "@waymo", "likes": 135, "retweets": 40, "views": 6000},
         {"text": "Alphabet's healthcare initiatives promising", "author": "@healthcare", "likes": 91, "retweets": 26, "views": 3500},
         {"text": "Alphabet's sustainability efforts commendable", "author": "@sustainability", "likes": 84, "retweets": 23, "views": 3000},
+        {"text": "Alphabet's Verily health projects are advancing", "author": "@verily", "likes": 112, "retweets": 34, "views": 4600},
+        {"text": "Alphabet's DeepMind AI breakthroughs continue", "author": "@deepmind", "likes": 159, "retweets": 48, "views": 7100},
+        {"text": "Alphabet's capital allocation is efficient", "author": "@capital", "likes": 97, "retweets": 29, "views": 3800},
+        {"text": "Alphabet's regulatory risks are increasing", "author": "@regulation", "likes": 43, "retweets": 15, "views": 1800},
+        {"text": "Alphabet's YouTube Shorts are competing well", "author": "@shorts", "likes": 126, "retweets": 38, "views": 5700},
     ],
     "default": [
         {"text": "Great company with strong fundamentals!", "author": "@investor", "likes": 50, "retweets": 10, "views": 1500},
@@ -179,6 +229,11 @@ MOCK_TWEETS_DB = {
         {"text": "Bullish on this one!", "author": "@bull", "likes": 75, "retweets": 20, "views": 2200},
         {"text": "Strong earnings report this quarter", "author": "@earnings", "likes": 65, "retweets": 18, "views": 1900},
         {"text": "Market sentiment is positive", "author": "@market", "likes": 55, "retweets": 14, "views": 1600},
+        {"text": "This company is undervalued", "author": "@value", "likes": 68, "retweets": 19, "views": 2000},
+        {"text": "Concerned about management decisions", "author": "@management", "likes": 28, "retweets": 8, "views": 900},
+        {"text": "Revenue growth is accelerating", "author": "@growth", "likes": 82, "retweets": 24, "views": 2400},
+        {"text": "Competitive position is weakening", "author": "@competition", "likes": 33, "retweets": 11, "views": 1100},
+        {"text": "Dividend yield is attractive", "author": "@dividend", "likes": 71, "retweets": 21, "views": 2100},
     ]
 }
 
