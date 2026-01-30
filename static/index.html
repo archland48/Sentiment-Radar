@@ -620,10 +620,10 @@
                     },
                     body: JSON.stringify({
                         keywords: keywords,
-                        max_tweets: 2,  // Reduced to prevent 504 timeout
+                        max_tweets: 5,  // Default for Mock Database (will be adjusted by backend based on data source)
                         options: {
-                            skip_ai_insights: true,  // Skip AI insights to save 3-8 seconds
-                            skip_keyword_expansion: true  // Skip keyword expansion to save 0.5-2s per keyword
+                            skip_ai_insights: false,  // Enable AI insights for Mock Database (no timeout concerns)
+                            skip_keyword_expansion: true  // Skip keyword expansion (user preference)
                         }
                     })
                 });
@@ -739,18 +739,7 @@
                     <h2 style="color: #667eea; margin-bottom: 15px;">🔍 Broad Scan Report</h2>
                     <div style="margin-bottom: 15px; color: #666; font-size: 0.95em;">
                         Top <strong>${tweets.length}</strong> most popular tweets from ${timeframe} (ranked by popularity score)
-                        <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; padding: 4px 8px; background: #e3f2fd; border-radius: 12px; font-size: 0.85em;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; background: #1d9bf0; border-radius: 50%; color: white; font-size: 9px; font-weight: bold;">✓</span>
-                            Verified Accounts Only (藍勾認證帳號)
-                        </span>
                     </div>
-                    ${broadScanReport.total_tweets_queried ? `
-                        <div style="margin-bottom: 10px; padding: 10px; background: #e3f2fd; border-radius: 6px; font-size: 0.85em; color: #555;">
-                            <strong>Query Results:</strong> Found ${broadScanReport.total_tweets_queried} tweets matching keywords
-                            ${broadScanReport.tweets_from_past_3_days ? `, ${broadScanReport.tweets_from_past_3_days} from past 3 days` : ''}
-                            ${rankingMethod ? `, ranked by ${rankingMethod}` : ''}
-                        </div>
-                    ` : ''}
                     <div style="display: grid; gap: 15px; margin-top: 15px;">
                         ${rankedTweets.map((tweet) => {
                             // Extract URLs from tweet text
@@ -811,11 +800,6 @@
                                             <strong style="color: #666;">Author:</strong>
                                             <span style="color: #333; display: inline-flex; align-items: center; gap: 4px;">
                                                 ${tweet.author || tweet.author_type || 'Unknown'}
-                                                ${tweet.verified ? `
-                                                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #1d9bf0; border-radius: 50%; color: white; font-size: 10px; font-weight: bold;" title="Verified Account (藍勾認證帳號)">
-                                                        ✓
-                                                    </span>
-                                                ` : ''}
                                             </span>
                                         </div>
                                     ` : ''}
@@ -965,22 +949,6 @@
                                             </div>
                                         </div>
                                     ` : ''}
-                                    ${analysis.tweet_urls && analysis.tweet_urls.length > 0 ? `
-                                        <div style="margin-bottom: 10px; padding: 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85em; border-left: 3px solid #ff9800;">
-                                            <strong style="color: #ff9800; display: block; margin-bottom: 5px;">🔗 External Links in Tweet:</strong>
-                                            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
-                                                ${analysis.tweet_urls.map(url => `
-                                                    <a href="${url.startsWith('http') ? url : 'https://' + url}" target="_blank" rel="noopener noreferrer" 
-                                                       style="color: #ff9800; text-decoration: none; word-break: break-all; padding: 4px 8px; background: white; border-radius: 3px; border: 1px solid #ffcc80;">
-                                                        ${url.length > 60 ? url.substring(0, 60) + '...' : url} ↗
-                                                    </a>
-                                                `).join('')}
-                                            </div>
-                                            <div style="margin-top: 6px; font-size: 0.75em; color: #999; font-style: italic;">
-                                                Note: These are external links mentioned in the tweet (e.g., news articles), not the tweet itself.
-                                            </div>
-                                        </div>
-                                    ` : ''}
                                     <div style="margin-bottom: 10px;">
                                         <strong style="color: #333; display: block; margin-bottom: 5px;">Summary:</strong>
                                         <div style="color: #555; margin-left: 0; line-height: 1.6;">${analysis.summary || 'No summary available'}</div>
@@ -1010,14 +978,11 @@
             const weightedAvg = summary.weighted_average_score !== undefined ? summary.weighted_average_score : summary.average_score;
             
             const summaryHTML = `
-                <div class="summary-title">📊 Thoughts Analysis Summary</div>
+                <div class="summary-title">📊 Sentiment Analysis Summary</div>
                 <div class="summary-stats">
                     <div class="summary-stat">
                         <div class="summary-stat-value">${weightedAvg.toFixed(3)}</div>
-                        <div class="summary-stat-label">Weighted Avg Thoughts</div>
-                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 4px;">
-                            (Unweighted: ${summary.average_score.toFixed(3)})
-                        </div>
+                        <div class="summary-stat-label">Sentiment</div>
                     </div>
                     <div class="summary-stat">
                         <div class="summary-stat-value">${summary.total_tweets}</div>

@@ -44,7 +44,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class ScanRequest(BaseModel):
     """Request model for thoughts scan"""
     keywords: List[str]
-    max_tweets: Optional[int] = 2  # Reduced to 2 to prevent 504 timeout
+    max_tweets: Optional[int] = None  # Default depends on data source (Mock Database: 5, Real API: 2)
     options: Optional[Dict[str, Any]] = None
 
 
@@ -414,8 +414,8 @@ async def query_x_api(query: str, max_results: int = 100) -> List[Dict[str, Any]
                 # Encode client credentials
                 credentials = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
                 
-                # Request Bearer Token
-                async with httpx.AsyncClient() as http_client:
+                # Request Bearer Token (with timeout to prevent hanging)
+                async with httpx.AsyncClient(timeout=10.0) as http_client:
                     response = await http_client.post(
                         "https://api.twitter.com/2/oauth2/token",
                         headers={
@@ -465,14 +465,19 @@ async def query_x_api(query: str, max_results: int = 100) -> List[Dict[str, Any]
                 print(f"Querying X API with: {full_query}")
                 
                 # Search recent tweets (filter: verified accounts only - 藍勾認證帳號)
-                response = client.search_recent_tweets(
-                    query=full_query,
-                    max_results=min(remaining_results, 100),
-                    tweet_fields=['created_at', 'public_metrics', 'author_id', 'text'],
-                    user_fields=['username', 'name', 'verified'],
-                    expansions=['author_id'],
-                    start_time=start_time if len(tweets_data) == 0 else None,  # Only on first request
-                    next_token=pagination_token if pagination_token else None
+                # Add timeout to prevent hanging (15 seconds per API call)
+                response = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        client.search_recent_tweets,
+                        query=full_query,
+                        max_results=min(remaining_results, 100),
+                        tweet_fields=['created_at', 'public_metrics', 'author_id', 'text'],
+                        user_fields=['username', 'name', 'verified'],
+                        expansions=['author_id'],
+                        start_time=start_time if len(tweets_data) == 0 else None,  # Only on first request
+                        next_token=pagination_token if pagination_token else None
+                    ),
+                    timeout=15.0  # 15 second timeout per API call
                 )
                 
                 if not response.data:
@@ -518,6 +523,10 @@ async def query_x_api(query: str, max_results: int = 100) -> List[Dict[str, Any]
                 else:
                     break
                     
+            except asyncio.TimeoutError:
+                print(f"⚠️ X API query timed out after 15s for: {full_query}")
+                print("Continuing with tweets found so far...")
+                break  # Return what we have so far
             except tweepy.TooManyRequests:
                 # Rate limit hit, wait and retry
                 print("Rate limit reached, waiting...")
@@ -912,20 +921,25 @@ def filter_tweets_by_timeframe(tweets: List[Dict[str, Any]], days: int = 3) -> L
 
 async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Stage 1: Broad Scan - Query X API and Rank Top 2 Most Popular Tweets
+    Stage 1: Broad Scan - Query X API and Rank Top N Most Popular Tweets
     
     Process:
     1. Query X API for keyword matches (expands keywords to all variations)
     2. Filter to verified accounts only (藍勾認證帳號 - blue checkmark accounts)
     3. Filter tweets to past 3 days
     4. Rank tweets by popularity (weighted engagement: views, likes, retweets)
-    5. Return top 2 most popular tweets (reduced to prevent timeout)
+    5. Return top N most popular tweets (default: 5 for Mock Database, 2 for real API)
     
     This ensures that searching for "AAPL", "Apple", or "$AAPL" all find tweets
     containing any of these variations from verified accounts, then ranks them by popularity.
     """
     start_time = datetime.now()
     background_text = read_background()
+    
+    # Set default max_tweets if not provided
+    use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
+    if max_tweets is None:
+        max_tweets = 5 if use_mock_data else 2
     
     # Step 1: Query X API for keyword matches
     tweets = []
@@ -934,8 +948,10 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optiona
     found_keywords = []
     
     if keywords:
-        # Check if keyword expansion should be skipped (faster, saves 0.5-2s per keyword)
-        skip_expansion = options and options.get("skip_keyword_expansion", True) if options else True
+        # Check if keyword expansion should be skipped
+        # Default: skip expansion for both Mock Database and real API (user preference)
+        skip_expansion_default = True  # Skip by default
+        skip_expansion = options.get("skip_keyword_expansion", skip_expansion_default) if options else skip_expansion_default
         
         if skip_expansion:
             # Use keywords directly without expansion (faster)
@@ -1054,6 +1070,9 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     - Collects all analyses into Deep Dive Report
     """
     start_time = datetime.now()
+    
+    # Check if using Mock Database (affects optimization settings)
+    use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
     
     stage1_data = stage1_result.get("result", {})
     tweets = stage1_data.get("tweets", [])
@@ -1208,27 +1227,48 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
                 "error": str(e)
             }
     
-    # Execute all LLM calls in parallel (much faster than sequential)
+    # Check if using Mock Database (no need for optimizations)
+    use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
+    
+    # Execute LLM calls: parallel for API (optimized) or sequential for Mock Database (no optimization needed)
     if analyzed_tweets:
         llm_start = datetime.now()
-        print(f"🚀 [STAGE2] Processing {len(analyzed_tweets)} tweets in parallel for Deep Dive Analysis...")
-        analysis_tasks = [analyze_single_tweet(tweet) for tweet in analyzed_tweets]
-        results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
+        if use_mock_data:
+            # Sequential processing for Mock Database (no optimization needed, more reliable)
+            print(f"🚀 [STAGE2] Processing {len(analyzed_tweets)} tweets sequentially for Deep Dive Analysis (Mock Database mode)...")
+            for tweet in analyzed_tweets:
+                try:
+                    result = await analyze_single_tweet(tweet)
+                    if result is not None:
+                        deep_dive_analyses.append(result)
+                except Exception as e:
+                    deep_dive_analyses.append({
+                        "sentiment": "Neutral",
+                        "summary": f"Error analyzing tweet: {str(e)}",
+                        "reasoning": "Analysis error",
+                        "error": str(e)
+                    })
+        else:
+            # Parallel processing for real API (optimized for speed)
+            print(f"🚀 [STAGE2] Processing {len(analyzed_tweets)} tweets in parallel for Deep Dive Analysis...")
+            analysis_tasks = [analyze_single_tweet(tweet) for tweet in analyzed_tweets]
+            results = await asyncio.gather(*analysis_tasks, return_exceptions=True)
+            
+            # Process results and filter out None values
+            for result in results:
+                if isinstance(result, Exception):
+                    # Handle exceptions from gather
+                    deep_dive_analyses.append({
+                        "sentiment": "Neutral",
+                        "summary": f"Error during parallel analysis: {str(result)}",
+                        "reasoning": "Parallel processing error",
+                        "error": str(result)
+                    })
+                elif result is not None:
+                    deep_dive_analyses.append(result)
+        
         llm_duration = (datetime.now() - llm_start).total_seconds() * 1000
         print(f"✅ [STAGE2] Completed {len(analyzed_tweets)} LLM calls in {llm_duration:.2f}ms (avg: {llm_duration/len(analyzed_tweets):.2f}ms per tweet)")
-        
-        # Process results and filter out None values
-        for result in results:
-            if isinstance(result, Exception):
-                # Handle exceptions from gather
-                deep_dive_analyses.append({
-                    "sentiment": "Neutral",
-                    "summary": f"Error during parallel analysis: {str(result)}",
-                    "reasoning": "Parallel processing error",
-                    "error": str(result)
-                })
-            elif result is not None:
-                deep_dive_analyses.append(result)
     else:
         print("⚠️ No tweets to analyze in Deep Dive")
     
@@ -1249,13 +1289,13 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     
     basic_insights.append(f"Found {positive_count} positive, {negative_count} negative, and {neutral_count} neutral tweets")
     
-    # Generate AI-powered insights (optional, can be skipped to save time)
-    # Default to skipping to prevent 504 timeout (saves 3-8 seconds)
+    # Generate AI-powered insights
+    # For Mock Database: enable by default (no timeout concerns)
+    # For real API: skip by default to prevent 504 timeout
     ai_insights = []
-    # Skip AI insights by default (set to False in options to enable)
-    skip_ai_insights = True
+    skip_ai_insights = not use_mock_data  # Enable for Mock Database, skip for real API by default
     if options and options.get("skip_ai_insights") is not None:
-        skip_ai_insights = options.get("skip_ai_insights", True)
+        skip_ai_insights = options.get("skip_ai_insights", skip_ai_insights)
     
     if not skip_ai_insights:
         try:
@@ -1266,14 +1306,15 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
                 "neutral_count": neutral_count,
                 "total_tweets": len(analyzed_tweets)
             }
-            # Add timeout to prevent hanging
+            # Add timeout: longer for Mock Database, shorter for real API
+            timeout_seconds = 20.0 if use_mock_data else 10.0
             ai_insights = await asyncio.wait_for(
                 generate_insights_with_ai(
                     analyzed_tweets,
                     original_keywords,
                     aggregate_thoughts
                 ),
-                timeout=10.0  # 10 second timeout for insights
+                timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
             print("⚠️ AI insights generation timed out, skipping...")
@@ -1357,8 +1398,15 @@ async def run_thoughts_scan(request: ScanRequest):
     scan_start_time = datetime.now()
     scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
     
-    # Limit max_tweets to prevent timeout (gateway timeout is usually 30-60s)
-    max_tweets = min(request.max_tweets or 2, 3)  # Cap at 3, default 2 to prevent timeout
+    # Check if using Mock Database (no need for strict limits)
+    use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
+    
+    # Limit max_tweets: more lenient for Mock Database, strict for real API
+    if use_mock_data:
+        max_tweets = request.max_tweets or 5  # Default 5 for Mock Database
+        max_tweets = min(max_tweets, 10)  # Cap at 10 for Mock Database
+    else:
+        max_tweets = min(request.max_tweets or 2, 3)  # Cap at 3, default 2 for real API to prevent timeout
     
     # Log scan start
     print(f"🚀 [SCAN {scan_id}] Starting scan with keywords: {request.keywords}, max_tweets: {max_tweets}")

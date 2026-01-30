@@ -494,14 +494,22 @@ Analytical Task: Based on the internal context, evaluate the strategic importanc
     ]
 
     try:
-        # Add timeout to prevent hanging (max 6 seconds per LLM call)
+        # Check if using Mock Database (no need for strict limits)
+        import os
+        use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
+        
+        # Adjust timeout and tokens based on data source
+        timeout_seconds = 15.0 if use_mock_data else 6.0
+        max_tokens_value = 300 if use_mock_data else 200
+        
+        # Add timeout: longer for Mock Database, shorter for real API
         response = await asyncio.wait_for(
             chat_completion(
                 messages=messages,
                 temperature=0.5,  # Lower temperature for more consistent analysis
-                max_tokens=200  # Reduced from 300 to speed up response
+                max_tokens=max_tokens_value
             ),
-            timeout=6.0  # Reduced timeout to prevent 504 errors
+            timeout=timeout_seconds
         )
         
         content = response["choices"][0]["message"]["content"].strip()

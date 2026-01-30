@@ -9,12 +9,22 @@ SERVICE_NAME="sentimentradar"
 API_BASE="https://space.ai-builders.com/backend"
 
 echo "🔍 Monitoring Sentiment Radar: $SERVICE_URL"
-echo "=" * 70
+echo "======================================================================"
 echo ""
 
-# Load environment variables
+# Load environment variables (skip comments and invalid lines)
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | grep '=' | xargs)
+    # Only export lines that contain = and don't start with #
+    while IFS= read -r line; do
+        # Skip empty lines and comments
+        if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
+            continue
+        fi
+        # Only process lines with =
+        if [[ "$line" =~ = ]]; then
+            export "$line" 2>/dev/null || true
+        fi
+    done < .env
 fi
 
 if [ -z "$AI_BUILDER_TOKEN" ]; then
@@ -25,7 +35,7 @@ fi
 # Function to check deployment status
 check_deployment() {
     echo "📊 Deployment Status:"
-    echo "-" * 70
+    echo "----------------------------------------------------------------------"
     
     response=$(curl -s -X GET \
         "$API_BASE/v1/deployments/$SERVICE_NAME" \
@@ -45,7 +55,7 @@ check_deployment() {
 # Function to check service health
 check_health() {
     echo "🏥 Service Health:"
-    echo "-" * 70
+    echo "----------------------------------------------------------------------"
     
     http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$SERVICE_URL/health" 2>/dev/null || echo "000")
     
@@ -62,7 +72,7 @@ check_health() {
 # Function to get recent logs
 get_logs() {
     echo "📋 Recent Runtime Logs (last 50 lines):"
-    echo "-" * 70
+    echo "----------------------------------------------------------------------"
     
     response=$(curl -s -X GET \
         "$API_BASE/v1/deployments/$SERVICE_NAME/logs?log_type=runtime&timeout=5" \
@@ -82,7 +92,7 @@ get_logs() {
 # Function to test a scan request
 test_scan() {
     echo "🧪 Testing Scan Request:"
-    echo "-" * 70
+    echo "----------------------------------------------------------------------"
     echo "Sending test request with keyword: AAPL"
     echo ""
     
@@ -163,7 +173,7 @@ main() {
         test_scan
     fi
     
-    echo "=" * 70
+    echo "======================================================================"
     echo "Monitoring complete. Run again to check updates."
 }
 
