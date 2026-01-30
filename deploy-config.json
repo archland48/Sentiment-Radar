@@ -1,7 +1,7 @@
 {
-  "repo_url": "YOUR_GITHUB_REPO_URL_HERE",
-  "service_name": "sentiment-alpha-radar",
+  "repo_url": "https://github.com/archland48/Sentiment-Radar.git",
+  "service_name": "sentimentradar",
   "branch": "main",
-  "port": 8001,
+  "port": 8000,
   "env_vars": {}
 }
