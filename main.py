@@ -14,7 +14,7 @@ import httpx
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 from ai_client import (
-    analyze_thoughts_with_ai, 
+    analyze_sentiment_with_ai, 
     generate_insights_with_ai, 
     perform_deep_dive_analysis
 )
@@ -24,7 +24,7 @@ load_dotenv()
 
 app = FastAPI(
     title="Sentiment Alpha Radar API",
-    description="API for analyzing user thoughts on X (Twitter) for keywords, ticker symbols, and company names",
+    description="API for analyzing user sentiment on X (Twitter) for keywords, ticker symbols, and company names",
     version="1.0.0"
 )
 
@@ -42,7 +42,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 class ScanRequest(BaseModel):
-    """Request model for thoughts scan"""
+    """Request model for sentiment scan"""
     keywords: List[str]
     max_tweets: Optional[int] = 3  # Default to 3 popular tweets
     options: Optional[Dict[str, Any]] = None
@@ -57,8 +57,8 @@ class Tweet(BaseModel):
     likes: int
     retweets: int
     views: int
-    thoughts_score: float
-    thoughts_label: str
+    sentiment_score: float
+    sentiment_label: str
 
 
 class ScanStageResult(BaseModel):
@@ -252,18 +252,18 @@ async def expand_keyword_to_variations(keyword: str) -> Dict[str, List[str]]:
     }
 
 
-# Engagement weights for thoughts monitoring
-# Higher weight = more important for thoughts analysis
+# Engagement weights for sentiment monitoring
+# Higher weight = more important for sentiment analysis
 ENGAGEMENT_WEIGHTS = {
-    "views": 0.1,      # Low: Just exposure, doesn't indicate thoughts
-    "likes": 0.3,     # Medium: Indicates agreement/positive thoughts
-    "retweets": 0.6    # High: Indicates strong agreement/sharing thoughts
+    "views": 0.1,      # Low: Just exposure, doesn't indicate sentiment
+    "likes": 0.3,     # Medium: Indicates agreement/positive sentiment
+    "retweets": 0.6    # High: Indicates strong agreement/sharing sentiment
 }
 
 
 def calculate_weighted_engagement(likes: int, retweets: int, views: int) -> float:
     """
-    Calculate weighted engagement score for thoughts monitoring
+    Calculate weighted engagement score for sentiment monitoring
     
     Args:
         likes: Number of likes
@@ -281,16 +281,16 @@ def calculate_weighted_engagement(likes: int, retweets: int, views: int) -> floa
     return round(weighted_score, 2)
 
 
-def analyze_thoughts(text: str) -> Dict[str, Any]:
+def analyze_sentiment(text: str) -> Dict[str, Any]:
     """
-    Analyze thoughts of text using TextBlob
+    Analyze sentiment of text using TextBlob
     
-    Returns thoughts score (-1 to 1) and label
+    Returns sentiment score (-1 to 1) and label
     """
     blob = TextBlob(text)
     polarity = blob.sentiment.polarity
     
-    # Classify thoughts
+    # Classify sentiment
     if polarity > 0.1:
         label = "positive"
     elif polarity < -0.1:
@@ -860,10 +860,10 @@ def read_background() -> str:
         with open(background_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
-        return "Our project's primary strategic focus is analyzing user thoughts on X for various keywords (including ticker symbols, company names, $)."
+        return "Our project's primary strategic focus is analyzing user sentiment on X for various keywords (including ticker symbols, company names, $)."
     except Exception as e:
         print(f"Error reading background.md: {e}")
-        return "Our project's primary strategic focus is analyzing user thoughts on X for various keywords (including ticker symbols, company names, $)."
+        return "Our project's primary strategic focus is analyzing user sentiment on X for various keywords (including ticker symbols, company names, $)."
 
 
 def calculate_popularity_score(tweet: Dict[str, Any]) -> float:
@@ -1056,8 +1056,8 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     """
     Stage 2: Deep Dive Analysis
     
-    Part 1: Thoughts Analysis
-    - Analyzes thoughts of discovered tweets (using TextBlob)
+    Part 1: Sentiment Analysis
+    - Analyzes sentiment of discovered tweets (using TextBlob)
     - Optionally enhances analysis with AI for complex cases
     
     Part 2: Deep Dive Analysis
@@ -1078,10 +1078,10 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     original_keywords = stage1_data.get("original_keywords", [])
     background_text = stage1_data.get("broad_scan", {}).get("background_text", read_background())
     
-    # Part 1: Thoughts Analysis with Weighted Engagement
+    # Part 1: Sentiment Analysis with Weighted Engagement
     analyzed_tweets = []
-    thoughts_scores = []
-    weighted_thoughts_scores = []  # Thoughts weighted by engagement
+    sentiment_scores = []
+    weighted_sentiment_scores = []  # Sentiment weighted by engagement
     
     for tweet in tweets:
         # Ensure views field exists (default to 0 if missing)
@@ -1089,22 +1089,22 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
         likes = tweet.get("likes", 0)
         retweets = tweet.get("retweets", 0)
         
-        # Use TextBlob for initial thoughts analysis
-        thoughts = analyze_thoughts(tweet["text"])
+        # Use TextBlob for initial sentiment analysis
+        sentiment = analyze_sentiment(tweet["text"])
         
         # Optionally enhance with AI for ambiguous cases (low confidence)
-        if thoughts["confidence"] < 0.3:
+        if sentiment["confidence"] < 0.3:
             try:
                 context = tweet.get("original_keyword", "")
-                ai_thoughts = await analyze_thoughts_with_ai(tweet["text"], context)
+                ai_sentiment = await analyze_sentiment_with_ai(tweet["text"], context)
                 # Use AI result if available, otherwise keep TextBlob result
-                if ai_thoughts.get("thoughts_score") is not None:
-                    thoughts = {
-                        "score": ai_thoughts.get("thoughts_score", thoughts["score"]),
-                        "label": ai_thoughts.get("thoughts_label", thoughts["label"]),
-                        "confidence": ai_thoughts.get("confidence", thoughts["confidence"]),
+                if ai_sentiment.get("sentiment_score") is not None:
+                    sentiment = {
+                        "score": ai_sentiment.get("sentiment_score", sentiment["score"]),
+                        "label": ai_sentiment.get("sentiment_label", sentiment["label"]),
+                        "confidence": ai_sentiment.get("confidence", sentiment["confidence"]),
                         "ai_enhanced": True,
-                        "reasoning": ai_thoughts.get("reasoning", "")
+                        "reasoning": ai_sentiment.get("reasoning", "")
                     }
             except Exception as e:
                 # If AI fails, continue with TextBlob result
@@ -1113,68 +1113,68 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
         # Calculate weighted engagement
         weighted_engagement = calculate_weighted_engagement(likes, retweets, views)
         
-        tweet_with_thoughts = {
+        tweet_with_sentiment = {
             **tweet,
             "views": views,  # Ensure views is included
-            "thoughts_score": thoughts["score"],
-            "thoughts_label": thoughts["label"],
-            "thoughts_confidence": thoughts["confidence"],
+            "sentiment_score": sentiment["score"],
+            "sentiment_label": sentiment["label"],
+            "sentiment_confidence": sentiment["confidence"],
             "weighted_engagement": weighted_engagement
         }
         
-        if thoughts.get("ai_enhanced"):
-            tweet_with_thoughts["ai_enhanced"] = True
-            tweet_with_thoughts["ai_reasoning"] = thoughts.get("reasoning", "")
+        if sentiment.get("ai_enhanced"):
+            tweet_with_sentiment["ai_enhanced"] = True
+            tweet_with_sentiment["ai_reasoning"] = sentiment.get("reasoning", "")
         
-        analyzed_tweets.append(tweet_with_thoughts)
-        thoughts_scores.append(thoughts["score"])
+        analyzed_tweets.append(tweet_with_sentiment)
+        sentiment_scores.append(sentiment["score"])
         
-        # Calculate weighted thoughts (thoughts * engagement weight)
-        # Higher engagement = more influence on overall thoughts
-        weighted_thoughts = thoughts["score"] * weighted_engagement
-        weighted_thoughts_scores.append(weighted_thoughts)
+        # Calculate weighted sentiment (sentiment * engagement weight)
+        # Higher engagement = more influence on overall sentiment
+        weighted_sentiment = sentiment["score"] * weighted_engagement
+        weighted_sentiment_scores.append(weighted_sentiment)
     
     # Calculate aggregate metrics (both unweighted and weighted)
-    if thoughts_scores:
+    if sentiment_scores:
         # Unweighted average (simple mean)
-        avg_thoughts = sum(thoughts_scores) / len(thoughts_scores)
+        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
         
         # Weighted average (engagement-weighted)
         # Will be calculated after total_weighted_engagement is computed
         
         # Counts (unweighted)
-        positive_count = sum(1 for s in thoughts_scores if s > 0.1)
-        negative_count = sum(1 for s in thoughts_scores if s < -0.1)
-        neutral_count = len(thoughts_scores) - positive_count - negative_count
+        positive_count = sum(1 for s in sentiment_scores if s > 0.1)
+        negative_count = sum(1 for s in sentiment_scores if s < -0.1)
+        neutral_count = len(sentiment_scores) - positive_count - negative_count
         
         # Weighted counts (considering engagement)
         weighted_positive = sum(
             tweet.get("weighted_engagement", 0) 
             for tweet in analyzed_tweets 
-            if tweet.get("thoughts_score", 0) > 0.1
+            if tweet.get("sentiment_score", 0) > 0.1
         )
         weighted_negative = sum(
             tweet.get("weighted_engagement", 0) 
             for tweet in analyzed_tweets 
-            if tweet.get("thoughts_score", 0) < -0.1
+            if tweet.get("sentiment_score", 0) < -0.1
         )
         weighted_neutral = sum(
             tweet.get("weighted_engagement", 0) 
             for tweet in analyzed_tweets 
-            if -0.1 <= tweet.get("thoughts_score", 0) <= 0.1
+            if -0.1 <= tweet.get("sentiment_score", 0) <= 0.1
         )
         
         # Calculate total weighted engagement
         total_weighted_engagement = sum(tweet.get("weighted_engagement", 0) for tweet in analyzed_tweets)
         
-        # Calculate weighted average thoughts
+        # Calculate weighted average sentiment
         if total_weighted_engagement > 0:
-            weighted_avg_thoughts = sum(weighted_thoughts_scores) / total_weighted_engagement
+            weighted_avg_sentiment = sum(weighted_sentiment_scores) / total_weighted_engagement
         else:
-            weighted_avg_thoughts = avg_thoughts
+            weighted_avg_sentiment = avg_sentiment
     else:
-        avg_thoughts = 0.0
-        weighted_avg_thoughts = 0.0
+        avg_sentiment = 0.0
+        weighted_avg_sentiment = 0.0
         positive_count = negative_count = neutral_count = 0
         weighted_positive = weighted_negative = weighted_neutral = 0.0
         total_weighted_engagement = 0.0
@@ -1255,16 +1255,16 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     
     # Generate basic insights
     basic_insights = []
-    if avg_thoughts > 0.3:
-        basic_insights.append("Overall thoughts are strongly positive")
-    elif avg_thoughts > 0.1:
-        basic_insights.append("Overall thoughts are positive")
-    elif avg_thoughts < -0.3:
-        basic_insights.append("Overall thoughts are strongly negative")
-    elif avg_thoughts < -0.1:
-        basic_insights.append("Overall thoughts are negative")
+    if avg_sentiment > 0.3:
+        basic_insights.append("Overall sentiment is strongly positive")
+    elif avg_sentiment > 0.1:
+        basic_insights.append("Overall sentiment is positive")
+    elif avg_sentiment < -0.3:
+        basic_insights.append("Overall sentiment is strongly negative")
+    elif avg_sentiment < -0.1:
+        basic_insights.append("Overall sentiment is negative")
     else:
-        basic_insights.append("Overall thoughts are neutral")
+        basic_insights.append("Overall sentiment is neutral")
     
     basic_insights.append(f"Found {positive_count} positive, {negative_count} negative, and {neutral_count} neutral tweets")
     
@@ -1277,8 +1277,8 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     
     if not skip_ai_insights:
         try:
-            aggregate_thoughts = {
-                "average_score": round(avg_thoughts, 3),
+            aggregate_sentiment = {
+                "average_score": round(avg_sentiment, 3),
                 "positive_count": positive_count,
                 "negative_count": negative_count,
                 "neutral_count": neutral_count,
@@ -1290,7 +1290,7 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
                 generate_insights_with_ai(
                     analyzed_tweets,
                     original_keywords,
-                    aggregate_thoughts
+                    aggregate_sentiment
                 ),
                 timeout=timeout_seconds
             )
@@ -1306,11 +1306,11 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     
     # Compile final results
     final_result = {
-        # Thoughts Analysis Results
+        # Sentiment Analysis Results
         "analyzed_tweets": analyzed_tweets,
-        "aggregate_thoughts": {
-            "average_score": round(avg_thoughts, 3),
-            "weighted_average_score": round(weighted_avg_thoughts, 3),  # Engagement-weighted
+        "aggregate_sentiment": {
+            "average_score": round(avg_sentiment, 3),
+            "weighted_average_score": round(weighted_avg_sentiment, 3),  # Engagement-weighted
             "positive_count": positive_count,
             "negative_count": negative_count,
             "neutral_count": neutral_count,
@@ -1325,9 +1325,9 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
         "insights": insights,
         "ai_insights_count": len(ai_insights),
         "recommendations": [
-            "Monitor thoughts trends over time",
+            "Monitor sentiment trends over time",
             "Track engagement metrics (likes, retweets, views)",
-            "Compare thoughts across different keywords"
+            "Compare sentiment across different keywords"
         ],
         # Deep Dive Report
         "deep_dive": {
@@ -1351,9 +1351,9 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
 
 
 @app.post("/scan", response_model=ScanResponse)
-async def run_thoughts_scan(request: ScanRequest):
+async def run_sentiment_scan(request: ScanRequest):
     """
-    Run a two-stage thoughts scan workflow
+    Run a two-stage sentiment scan workflow
     
     - **Stage 1: Broad Scan**
       - Queries X API for keyword matches (expands keywords to all variations)
@@ -1402,7 +1402,7 @@ async def run_thoughts_scan(request: ScanRequest):
             duration_ms=stage1_duration
         )
         
-        # Stage 2: Thoughts Analysis (uses stage 1 results)
+        # Stage 2: Sentiment Analysis (uses stage 1 results)
         stage2_start = datetime.now()
         print(f"⏱️  [SCAN {scan_id}] Stage 2 started at {stage2_start.isoformat()}")
         stage2_data = await stage2_scan(stage1_data, request.options)

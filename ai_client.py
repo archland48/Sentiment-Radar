@@ -82,29 +82,29 @@ async def chat_completion(
         raise Exception(f"AI API error: {str(e)}")
 
 
-async def analyze_thoughts_with_ai(
+async def analyze_sentiment_with_ai(
     text: str,
     context: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Analyze thoughts using AI Builders API
+    Analyze sentiment using AI Builders API
     
     Args:
         text: Text to analyze
         context: Optional context (e.g., company name, ticker symbol)
     
     Returns:
-        Dict with thoughts analysis results
+        Dict with sentiment analysis results
     """
-    system_prompt = """You are a thoughts analysis expert. Analyze the thoughts/opinions expressed in the given text and return a JSON response with:
-- thoughts_score: A float between -1 (very negative) and 1 (very positive)
-- thoughts_label: One of "positive", "negative", or "neutral"
+    system_prompt = """You are a sentiment analysis expert. Analyze the sentiment/opinions expressed in the given text and return a JSON response with:
+- sentiment_score: A float between -1 (very negative) and 1 (very positive)
+- sentiment_label: One of "positive", "negative", or "neutral"
 - confidence: A float between 0 and 1 indicating confidence
-- reasoning: Brief explanation of the thoughts analysis
+- reasoning: Brief explanation of the sentiment analysis
 
-Focus on financial and market thoughts/opinions when analyzing stock-related content."""
+Focus on financial and market sentiment/opinions when analyzing stock-related content."""
 
-    user_prompt = f"Analyze the thoughts expressed in this text"
+    user_prompt = f"Analyze the sentiment expressed in this text"
     if context:
         user_prompt += f" related to {context}"
     user_prompt += f":\n\n{text}"
@@ -117,7 +117,7 @@ Focus on financial and market thoughts/opinions when analyzing stock-related con
     try:
         response = await chat_completion(
             messages=messages,
-            temperature=0.3,  # Lower temperature for more consistent thoughts analysis
+            temperature=0.3,  # Lower temperature for more consistent sentiment analysis
             max_tokens=200
         )
         
@@ -137,28 +137,23 @@ Focus on financial and market thoughts/opinions when analyzing stock-related con
                 content = content[json_start:json_end].strip()
             
             result = json.loads(content)
-            # Map old field names to new ones if needed
-            if "sentiment_score" in result:
-                result["thoughts_score"] = result.pop("sentiment_score")
-            if "sentiment_label" in result:
-                result["thoughts_label"] = result.pop("sentiment_label")
             return result
         except json.JSONDecodeError:
-            # Fallback: extract thoughts from text response
+            # Fallback: extract sentiment from text response
             content_lower = content.lower()
             if "positive" in content_lower:
-                thoughts_label = "positive"
-                thoughts_score = 0.5
+                sentiment_label = "positive"
+                sentiment_score = 0.5
             elif "negative" in content_lower:
-                thoughts_label = "negative"
-                thoughts_score = -0.5
+                sentiment_label = "negative"
+                sentiment_score = -0.5
             else:
-                thoughts_label = "neutral"
-                thoughts_score = 0.0
+                sentiment_label = "neutral"
+                sentiment_score = 0.0
             
             return {
-                "thoughts_score": thoughts_score,
-                "thoughts_label": thoughts_label,
+                "sentiment_score": sentiment_score,
+                "sentiment_label": sentiment_label,
                 "confidence": 0.7,
                 "reasoning": content
             }
@@ -176,8 +171,8 @@ Focus on financial and market thoughts/opinions when analyzing stock-related con
             label = "neutral"
         
         return {
-            "thoughts_score": round(polarity, 3),
-            "thoughts_label": label,
+            "sentiment_score": round(polarity, 3),
+            "sentiment_label": label,
             "confidence": round(abs(polarity), 3),
             "reasoning": f"Fallback analysis: {str(e)}"
         }
@@ -193,7 +188,7 @@ async def perform_broad_scan(background_text: str) -> Dict[str, Any]:
     Returns:
         Dict with broad scan results including top 10 popular tweets and their details
     """
-    system_prompt = """You are a strategic research analyst specializing in social media thoughts analysis for financial markets.
+    system_prompt = """You are a strategic research analyst specializing in social media sentiment analysis for financial markets.
 Your task is to analyze strategic background information and identify the top 10 most popular relevant tweets within the past week on X (Twitter).
 
 Based on the strategic background, identify tweets that would be highly relevant and popular (high engagement: likes, retweets, views).
@@ -368,7 +363,7 @@ Focus on tweets that would realistically be popular (high engagement) and direct
             "tweets": [
                 {
                     "number": 1,
-                    "text": "Popular tweet about ticker symbols and thoughts analysis",
+                    "text": "Popular tweet about ticker symbols and sentiment analysis",
                     "likes": 0,
                     "retweets": 0,
                     "views": 0,
@@ -590,36 +585,36 @@ Analytical Task: Based on the internal context, evaluate the strategic importanc
 async def generate_insights_with_ai(
     tweets: List[Dict[str, Any]],
     keywords: List[str],
-    aggregate_thoughts: Dict[str, Any]
+    aggregate_sentiment: Dict[str, Any]
 ) -> List[str]:
     """
-    Generate insights using AI Builders API based on thoughts analysis results
+    Generate insights using AI Builders API based on sentiment analysis results
     
     Args:
         tweets: List of analyzed tweets
         keywords: Keywords that were searched
-        aggregate_thoughts: Aggregate thoughts metrics
+        aggregate_sentiment: Aggregate sentiment metrics
     
     Returns:
         List of insight strings
     """
-    system_prompt = """You are a financial market analyst. Analyze thoughts data and provide actionable insights.
+    system_prompt = """You are a financial market analyst. Analyze sentiment data and provide actionable insights.
 Focus on:
-- Overall market thoughts trends
+- Overall market sentiment trends
 - Notable patterns in the data
 - Potential implications for investors
 - Key takeaways
 
 Keep insights concise (1-2 sentences each) and professional."""
 
-    user_prompt = f"""Analyze this thoughts data and provide 3-5 key insights:
+    user_prompt = f"""Analyze this sentiment data and provide 3-5 key insights:
 
 Keywords analyzed: {', '.join(keywords)}
-Total tweets: {aggregate_thoughts.get('total_tweets', 0)}
-Average thoughts score: {aggregate_thoughts.get('average_score', 0)}
-Positive tweets: {aggregate_thoughts.get('positive_count', 0)}
-Negative tweets: {aggregate_thoughts.get('negative_count', 0)}
-Neutral tweets: {aggregate_thoughts.get('neutral_count', 0)}
+Total tweets: {aggregate_sentiment.get('total_tweets', 0)}
+Average sentiment score: {aggregate_sentiment.get('average_score', 0)}
+Positive tweets: {aggregate_sentiment.get('positive_count', 0)}
+Negative tweets: {aggregate_sentiment.get('negative_count', 0)}
+Neutral tweets: {aggregate_sentiment.get('neutral_count', 0)}
 
 Sample tweets analyzed:
 {chr(10).join([f"- {tweet.get('text', '')[:100]}..." for tweet in tweets[:5]])}
@@ -655,7 +650,7 @@ Provide insights as a bulleted list."""
     except Exception as e:
         # Fallback insights
         return [
-            f"Analyzed {aggregate_thoughts.get('total_tweets', 0)} tweets across {len(keywords)} keywords",
-            f"Overall thoughts score is {aggregate_thoughts.get('average_score', 0):.2f}",
+            f"Analyzed {aggregate_sentiment.get('total_tweets', 0)} tweets across {len(keywords)} keywords",
+            f"Overall sentiment score is {aggregate_sentiment.get('average_score', 0):.2f}",
             f"AI insight generation unavailable: {str(e)}"
         ]

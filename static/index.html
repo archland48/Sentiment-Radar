@@ -272,7 +272,7 @@
             margin-top: 5px;
         }
 
-        .thoughts-badge {
+        .sentiment-badge {
             display: inline-block;
             padding: 6px 12px;
             border-radius: 20px;
@@ -280,17 +280,17 @@
             font-weight: 600;
         }
 
-        .thoughts-positive {
+        .sentiment-positive {
             background: #4caf50;
             color: white;
         }
 
-        .thoughts-negative {
+        .sentiment-negative {
             background: #f44336;
             color: white;
         }
 
-        .thoughts-neutral {
+        .sentiment-neutral {
             background: #9e9e9e;
             color: white;
         }
@@ -421,7 +421,7 @@
 
         <div id="loadingSection" class="loading" style="display: none;">
             <div class="spinner"></div>
-            <p>Scanning tweets and analyzing thoughts...</p>
+            <p>Scanning tweets and analyzing sentiment...</p>
         </div>
 
         <div id="errorSection" class="error" style="display: none;"></div>
@@ -664,8 +664,8 @@
             console.log("Stage1 data:", stage1Data);
             console.log("Stage2 data:", stage2Data);
             
-            // Display Thoughts Analysis Summary first
-            displayThoughtsSummary(stage2Data, stage1Data);
+            // Display Sentiment Analysis Summary first
+            displaySentimentSummary(stage2Data, stage1Data);
             
             // Display Broad Scan Report
             displayBroadScanReport(stage1Data);
@@ -972,8 +972,8 @@
             document.getElementById('resultsSection').insertAdjacentHTML('beforeend', deepDiveHTML);
         }
 
-        function displayThoughtsSummary(stage2Data, stage1Data) {
-            const summary = stage2Data.aggregate_thoughts || stage2Data.aggregate_sentiment || {};
+        function displaySentimentSummary(stage2Data, stage1Data) {
+            const summary = stage2Data.aggregate_sentiment || {};
             const keywordExpansions = stage1Data.keyword_expansions || {};
             const weightedAvg = summary.weighted_average_score !== undefined ? summary.weighted_average_score : summary.average_score;
             
