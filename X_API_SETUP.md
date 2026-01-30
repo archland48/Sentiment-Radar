@@ -154,9 +154,6 @@ See `FREE_X_API_ALTERNATIVES.md` for more details on free alternatives.
 5. Restart the application
 6. Test with a search query
 
-### Option B: Free snscrape (No API Key)
-1. Set `USE_SNSCRAPE=true` in `.env`
-2. Install snscrape: `pip install snscrape`
 3. Restart the application
 4. Test with a search query
 
