@@ -44,7 +44,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class ScanRequest(BaseModel):
     """Request model for thoughts scan"""
     keywords: List[str]
-    max_tweets: Optional[int] = 3  # Reduced from 5 to avoid timeout
+    max_tweets: Optional[int] = 2  # Reduced to 2 to prevent 504 timeout
     options: Optional[Dict[str, Any]] = None
 
 
@@ -910,16 +910,16 @@ def filter_tweets_by_timeframe(tweets: List[Dict[str, Any]], days: int = 3) -> L
     return filtered
 
 
-async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Stage 1: Broad Scan - Query X API and Rank Top 5 Most Popular Tweets
+    Stage 1: Broad Scan - Query X API and Rank Top 2 Most Popular Tweets
     
     Process:
     1. Query X API for keyword matches (expands keywords to all variations)
     2. Filter to verified accounts only (藍勾認證帳號 - blue checkmark accounts)
     3. Filter tweets to past 3 days
     4. Rank tweets by popularity (weighted engagement: views, likes, retweets)
-    5. Return top 5 most popular tweets
+    5. Return top 2 most popular tweets (reduced to prevent timeout)
     
     This ensures that searching for "AAPL", "Apple", or "$AAPL" all find tweets
     containing any of these variations from verified accounts, then ranks them by popularity.
@@ -950,7 +950,7 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optiona
         for tweet in tweets_from_past_3_days:
             tweet["popularity_score"] = calculate_popularity_score(tweet)
         
-        # Sort by popularity score (descending) and take top 5
+        # Sort by popularity score (descending) and take top tweets
         tweets_from_past_3_days.sort(key=lambda x: x.get("popularity_score", 0), reverse=True)
         tweets = tweets_from_past_3_days[:max_tweets]
         
@@ -960,7 +960,7 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optiona
         # No keywords provided, return empty result
         tweets = []
     
-    # Create Broad Scan Report with top 5 ranked tweets
+    # Create Broad Scan Report with top ranked tweets
     broad_scan_report = {
         "tweets": tweets,
         "count": len(tweets),
@@ -1226,24 +1226,34 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     
     basic_insights.append(f"Found {positive_count} positive, {negative_count} negative, and {neutral_count} neutral tweets")
     
-    # Generate AI-powered insights
+    # Generate AI-powered insights (optional, can be skipped to save time)
     ai_insights = []
-    try:
-        aggregate_thoughts = {
-            "average_score": round(avg_thoughts, 3),
-            "positive_count": positive_count,
-            "negative_count": negative_count,
-            "neutral_count": neutral_count,
-            "total_tweets": len(analyzed_tweets)
-        }
-        ai_insights = await generate_insights_with_ai(
-            analyzed_tweets,
-            original_keywords,
-            aggregate_thoughts
-        )
-    except Exception as e:
-        # If AI insights fail, use basic insights only
-        print(f"AI insights generation failed: {e}")
+    skip_ai_insights = options and options.get("skip_ai_insights", False)
+    
+    if not skip_ai_insights:
+        try:
+            aggregate_thoughts = {
+                "average_score": round(avg_thoughts, 3),
+                "positive_count": positive_count,
+                "negative_count": negative_count,
+                "neutral_count": neutral_count,
+                "total_tweets": len(analyzed_tweets)
+            }
+            # Add timeout to prevent hanging
+            ai_insights = await asyncio.wait_for(
+                generate_insights_with_ai(
+                    analyzed_tweets,
+                    original_keywords,
+                    aggregate_thoughts
+                ),
+                timeout=10.0  # 10 second timeout for insights
+            )
+        except asyncio.TimeoutError:
+            print("⚠️ AI insights generation timed out, skipping...")
+            ai_insights = []
+        except Exception as e:
+            # If AI insights fail, use basic insights only
+            print(f"AI insights generation failed: {e}")
     
     # Combine insights (AI insights first, then basic)
     insights = ai_insights + basic_insights if ai_insights else basic_insights
@@ -1321,7 +1331,7 @@ async def run_thoughts_scan(request: ScanRequest):
     scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
     
     # Limit max_tweets to prevent timeout (gateway timeout is usually 30-60s)
-    max_tweets = min(request.max_tweets or 3, 5)  # Cap at 5 to prevent timeout
+    max_tweets = min(request.max_tweets or 2, 3)  # Cap at 3, default 2 to prevent timeout
     
     try:
         # Stage 1: Tweet Discovery

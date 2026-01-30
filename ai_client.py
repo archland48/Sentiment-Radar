@@ -3,6 +3,7 @@ AI Client for AI Builders API integration
 Uses OpenAI SDK with custom base URL and model
 """
 import os
+import asyncio
 from typing import Optional, List, Dict, Any
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -493,10 +494,14 @@ Analytical Task: Based on the internal context, evaluate the strategic importanc
     ]
 
     try:
-        response = await chat_completion(
-            messages=messages,
-            temperature=0.5,  # Lower temperature for more consistent analysis
-            max_tokens=300
+        # Add timeout to prevent hanging (max 6 seconds per LLM call)
+        response = await asyncio.wait_for(
+            chat_completion(
+                messages=messages,
+                temperature=0.5,  # Lower temperature for more consistent analysis
+                max_tokens=200  # Reduced from 300 to speed up response
+            ),
+            timeout=6.0  # Reduced timeout to prevent 504 errors
         )
         
         content = response["choices"][0]["message"]["content"].strip()
