@@ -1229,7 +1229,10 @@ async def stage2_scan(stage1_result: Dict[str, Any], options: Optional[Dict[str,
     # Generate AI-powered insights (optional, can be skipped to save time)
     # Default to skipping to prevent 504 timeout (saves 3-8 seconds)
     ai_insights = []
-    skip_ai_insights = options and options.get("skip_ai_insights", True) if options else True
+    # Skip AI insights by default (set to False in options to enable)
+    skip_ai_insights = True
+    if options and options.get("skip_ai_insights") is not None:
+        skip_ai_insights = options.get("skip_ai_insights", True)
     
     if not skip_ai_insights:
         try:
