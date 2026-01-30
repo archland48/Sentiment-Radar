@@ -622,7 +622,8 @@
                         keywords: keywords,
                         max_tweets: 2,  // Reduced to prevent 504 timeout
                         options: {
-                            skip_ai_insights: true  // Skip AI insights to save 3-8 seconds
+                            skip_ai_insights: true,  // Skip AI insights to save 3-8 seconds
+                            skip_keyword_expansion: true  // Skip keyword expansion to save 0.5-2s per keyword
                         }
                     })
                 });

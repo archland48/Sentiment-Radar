@@ -934,14 +934,29 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optiona
     found_keywords = []
     
     if keywords:
-        # Expand each keyword to all variations
-        for keyword in keywords:
-            expansion = await expand_keyword_to_variations(keyword)
-            keyword_expansions[keyword] = expansion["variations"]
+        # Check if keyword expansion should be skipped (faster, saves 0.5-2s per keyword)
+        skip_expansion = options and options.get("skip_keyword_expansion", True) if options else True
         
-        # Query X API for tweets matching all variations
+        if skip_expansion:
+            # Use keywords directly without expansion (faster)
+            print(f"⚡ Skipping keyword expansion - using keywords directly: {keywords}")
+            keyword_expansions = {kw: [kw] for kw in keywords}  # Each keyword maps to itself
+            all_variations_searched = keywords.copy()
+        else:
+            # Expand each keyword to all variations (slower but more comprehensive)
+            print(f"🔍 Expanding keywords to variations...")
+            for keyword in keywords:
+                expansion = await expand_keyword_to_variations(keyword)
+                keyword_expansions[keyword] = expansion["variations"]
+            all_variations_searched = []
+            for variations in keyword_expansions.values():
+                all_variations_searched.extend(variations)
+        
+        # Query X API for tweets matching keywords/variations
         # Get more tweets than needed so we can rank and filter
-        all_tweets, all_variations_searched = await search_tweets(keyword_expansions, max_tweets=1000)
+        all_tweets, searched_variations = await search_tweets(keyword_expansions, max_tweets=1000)
+        if not skip_expansion:
+            all_variations_searched = searched_variations
         
         # Step 2: Filter to past 3 days
         tweets_from_past_3_days = filter_tweets_by_timeframe(all_tweets, days=3)
@@ -971,7 +986,8 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optiona
         "query_info": {
             "keywords_searched": keywords,
             "variations_searched": all_variations_searched if keywords else [],
-            "filter_applied": "verified accounts only (藍勾認證帳號)"
+            "filter_applied": "verified accounts only (藍勾認證帳號)",
+            "keyword_expansion_skipped": skip_expansion if keywords else False
         }
     }
     
