@@ -44,7 +44,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class ScanRequest(BaseModel):
     """Request model for thoughts scan"""
     keywords: List[str]
-    max_tweets: Optional[int] = None  # Default depends on data source (Mock Database: 5, Real API: 2)
+    max_tweets: Optional[int] = 3  # Default to 3 popular tweets
     options: Optional[Dict[str, Any]] = None
 
 
@@ -919,16 +919,16 @@ def filter_tweets_by_timeframe(tweets: List[Dict[str, Any]], days: int = 3) -> L
     return filtered
 
 
-async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def stage1_scan(keywords: List[str], max_tweets: int = 3, options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Stage 1: Broad Scan - Query X API and Rank Top N Most Popular Tweets
+    Stage 1: Broad Scan - Query X API and Rank Top 3 Most Popular Tweets
     
     Process:
     1. Query X API for keyword matches (expands keywords to all variations)
     2. Filter to verified accounts only (藍勾認證帳號 - blue checkmark accounts)
     3. Filter tweets to past 3 days
     4. Rank tweets by popularity (weighted engagement: views, likes, retweets)
-    5. Return top N most popular tweets (default: 5 for Mock Database, 2 for real API)
+    5. Return top 3 most popular tweets
     
     This ensures that searching for "AAPL", "Apple", or "$AAPL" all find tweets
     containing any of these variations from verified accounts, then ranks them by popularity.
@@ -937,9 +937,8 @@ async def stage1_scan(keywords: List[str], max_tweets: int = 2, options: Optiona
     background_text = read_background()
     
     # Set default max_tweets if not provided
-    use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
     if max_tweets is None:
-        max_tweets = 5 if use_mock_data else 2
+        max_tweets = 3  # Default to 3 popular tweets
     
     # Step 1: Query X API for keyword matches
     tweets = []
@@ -1401,12 +1400,9 @@ async def run_thoughts_scan(request: ScanRequest):
     # Check if using Mock Database (no need for strict limits)
     use_mock_data = os.getenv('USE_MOCK_DATA', 'false').lower() == 'true'
     
-    # Limit max_tweets: more lenient for Mock Database, strict for real API
-    if use_mock_data:
-        max_tweets = request.max_tweets or 5  # Default 5 for Mock Database
-        max_tweets = min(max_tweets, 10)  # Cap at 10 for Mock Database
-    else:
-        max_tweets = min(request.max_tweets or 2, 3)  # Cap at 3, default 2 for real API to prevent timeout
+    # Set max_tweets: default to 3 popular tweets
+    max_tweets = request.max_tweets or 3  # Default to 3 popular tweets
+    max_tweets = min(max_tweets, 10)  # Cap at 10 maximum
     
     # Log scan start
     print(f"🚀 [SCAN {scan_id}] Starting scan with keywords: {request.keywords}, max_tweets: {max_tweets}")
