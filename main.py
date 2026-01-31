@@ -124,18 +124,6 @@ MOCK_TWEETS_DB = {
         {"text": "Apple Music is competing well with Spotify", "author": "@music", "likes": 87, "retweets": 26, "views": 3200},
         {"text": "Apple's environmental initiatives are commendable", "author": "@green", "likes": 124, "retweets": 38, "views": 4500},
     ],
-    "APPLE INC": [
-        {"text": "Apple Inc. continues to innovate in the tech space", "author": "@analyst", "likes": 78, "retweets": 23, "views": 2800},
-        {"text": "Apple Inc. stock performance is strong", "author": "@performance", "likes": 65, "retweets": 18, "views": 2200},
-        {"text": "Apple Inc. expanding into new markets", "author": "@expansion", "likes": 54, "retweets": 15, "views": 1900},
-        {"text": "Apple Inc. customer satisfaction remains high", "author": "@satisfaction", "likes": 72, "retweets": 20, "views": 2500},
-        {"text": "Apple Inc. supply chain resilience impressive", "author": "@supplychain", "likes": 61, "retweets": 17, "views": 2100},
-        {"text": "Apple Inc. dividend yield is attractive", "author": "@dividend", "likes": 89, "retweets": 27, "views": 3300},
-        {"text": "Apple Inc. faces regulatory challenges", "author": "@regulation", "likes": 48, "retweets": 16, "views": 2000},
-        {"text": "Apple Inc. R&D spending is impressive", "author": "@rd", "likes": 103, "retweets": 31, "views": 3700},
-        {"text": "Apple Inc. brand value remains #1", "author": "@brand", "likes": 116, "retweets": 35, "views": 4100},
-        {"text": "Apple Inc. Mac sales are recovering", "author": "@mac", "likes": 94, "retweets": 28, "views": 3500},
-    ],
     # TSLA / Tesla variations (ensure 10 tweets per keyword)
     "TSLA": [
         {"text": "Tesla's innovation is incredible! $TSLA https://www.tesla.com/blog/tesla-q4-2024-update", "author": "@evfan", "likes": 234, "retweets": 67, "views": 12000},
@@ -210,18 +198,6 @@ MOCK_TWEETS_DB = {
         {"text": "Google's Maps accuracy is impressive", "author": "@maps", "likes": 133, "retweets": 40, "views": 5900},
         {"text": "Google's privacy practices are concerning", "author": "@privacy", "likes": 51, "retweets": 18, "views": 2200},
         {"text": "Google's Tensor chips are improving", "author": "@hardware", "likes": 128, "retweets": 39, "views": 5400},
-    ],
-    "ALPHABET": [
-        {"text": "Alphabet's diverse portfolio is impressive", "author": "@investor", "likes": 76, "retweets": 22, "views": 2600},
-        {"text": "Alphabet's moonshot projects are innovative", "author": "@moonshot", "likes": 108, "retweets": 31, "views": 4300},
-        {"text": "Alphabet's Waymo autonomous driving progress", "author": "@waymo", "likes": 135, "retweets": 40, "views": 6000},
-        {"text": "Alphabet's healthcare initiatives promising", "author": "@healthcare", "likes": 91, "retweets": 26, "views": 3500},
-        {"text": "Alphabet's sustainability efforts commendable", "author": "@sustainability", "likes": 84, "retweets": 23, "views": 3000},
-        {"text": "Alphabet's Verily health projects are advancing", "author": "@verily", "likes": 112, "retweets": 34, "views": 4600},
-        {"text": "Alphabet's DeepMind AI breakthroughs continue", "author": "@deepmind", "likes": 159, "retweets": 48, "views": 7100},
-        {"text": "Alphabet's capital allocation is efficient", "author": "@capital", "likes": 97, "retweets": 29, "views": 3800},
-        {"text": "Alphabet's regulatory risks are increasing", "author": "@regulation", "likes": 43, "retweets": 15, "views": 1800},
-        {"text": "Alphabet's YouTube Shorts are competing well", "author": "@shorts", "likes": 126, "retweets": 38, "views": 5700},
     ],
     "default": [
         {"text": "Great company with strong fundamentals!", "author": "@investor", "likes": 50, "retweets": 10, "views": 1500},
