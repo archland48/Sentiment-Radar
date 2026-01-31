@@ -327,18 +327,18 @@ MOCK_TWEETS_DB = {
         {"text": "Micron's stock cyclical nature $MU", "author": "@cyclical", "likes": 49, "retweets": 17, "views": 2100},
         {"text": "Micron's market position strengthening $MU", "author": "@market", "likes": 175, "retweets": 53, "views": 8700},
     ],
-    # SNSK / Samsung (assuming this is Samsung)
+    # SNSK / SanDisk (Western Digital)
     "SNSK": [
-        {"text": "Samsung's memory chip leadership $SNSK", "author": "@memory", "likes": 165, "retweets": 50, "views": 8200},
-        {"text": "Samsung's foundry competition intense $SNSK", "author": "@foundry", "likes": 48, "retweets": 16, "views": 2000},
-        {"text": "Samsung's smartphone market share $SNSK", "author": "@smartphone", "likes": 152, "retweets": 46, "views": 7300},
-        {"text": "Samsung's display technology advanced $SNSK", "author": "@display", "likes": 179, "retweets": 54, "views": 8900},
-        {"text": "Samsung's AI chip development $SNSK", "author": "@ai", "likes": 188, "retweets": 57, "views": 9300},
-        {"text": "Samsung's battery technology leading $SNSK", "author": "@battery", "likes": 174, "retweets": 53, "views": 8700},
-        {"text": "Samsung's consumer electronics strong $SNSK", "author": "@consumer", "likes": 161, "retweets": 49, "views": 7900},
-        {"text": "Samsung's R&D investments significant $SNSK", "author": "@rd", "likes": 157, "retweets": 48, "views": 7600},
-        {"text": "Samsung's global market presence $SNSK", "author": "@global", "likes": 183, "retweets": 55, "views": 9000},
-        {"text": "Samsung's innovation pace impressive $SNSK", "author": "@innovation", "likes": 171, "retweets": 52, "views": 8500},
+        {"text": "SanDisk's flash storage solutions leading $SNSK", "author": "@storage", "likes": 165, "retweets": 50, "views": 8200},
+        {"text": "SanDisk's SSD performance impressive $SNSK", "author": "@ssd", "likes": 178, "retweets": 54, "views": 8800},
+        {"text": "SanDisk's memory card reliability $SNSK", "author": "@memory", "likes": 152, "retweets": 46, "views": 7300},
+        {"text": "SanDisk's USB drive innovation $SNSK", "author": "@usb", "likes": 161, "retweets": 49, "views": 7900},
+        {"text": "SanDisk's enterprise storage solutions $SNSK", "author": "@enterprise", "likes": 174, "retweets": 53, "views": 8700},
+        {"text": "SanDisk's Western Digital integration $SNSK", "author": "@wd", "likes": 157, "retweets": 48, "views": 7600},
+        {"text": "SanDisk's NAND flash technology $SNSK", "author": "@nand", "likes": 171, "retweets": 52, "views": 8500},
+        {"text": "SanDisk's consumer storage market share $SNSK", "author": "@consumer", "likes": 148, "retweets": 45, "views": 7100},
+        {"text": "SanDisk's data center solutions $SNSK", "author": "@datacenter", "likes": 183, "retweets": 55, "views": 9000},
+        {"text": "SanDisk's storage capacity leadership $SNSK", "author": "@capacity", "likes": 169, "retweets": 51, "views": 8300},
     ],
     # PLTR / Palantir
     "PLTR": [
